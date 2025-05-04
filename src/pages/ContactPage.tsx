@@ -1,28 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import emailjs from '@emailjs/browser';
 
 const ContactPage: React.FC = () => {
   const [form, setForm] = useState({ name: '', email: '', message: '' });
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
-    // Here you would send the form data to your backend or email service
+    setLoading(true);
+    setError(null);
+    // Replace these with your actual EmailJS values
+    const SERVICE_ID = 'service_5ourdnd';
+    const TEMPLATE_ID = 'template_2vdwz7h';
+    const PUBLIC_KEY = '-HFTNnRWKK5exFNqg';
+    try {
+      await emailjs.send(
+        SERVICE_ID,
+        TEMPLATE_ID,
+        {
+          name: form.name,
+          email: form.email,
+          message: form.message,
+        },
+        PUBLIC_KEY
+      );
+      setSubmitted(true);
+      setForm({ name: '', email: '', message: '' });
+    } catch (err) {
+      setError('Failed to send message. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="container-custom py-16 min-h-screen">
       <h1 className="text-4xl font-bold mb-8 text-neon-blue font-orbitron text-center">Contact Us</h1>
       <div className="grid md:grid-cols-2 gap-12">
-        <form className="bg-white dark:bg-light-navy rounded-2xl shadow-xl p-10 border border-gray-100 dark:border-gray-800" onSubmit={handleSubmit}>
+        <form ref={formRef} className="bg-white dark:bg-light-navy rounded-2xl shadow-xl p-10 border border-gray-100 dark:border-gray-800" onSubmit={handleSubmit}>
           <h2 className="text-2xl font-semibold mb-6 text-gray-900 dark:text-white">Send a Message</h2>
           {submitted ? (
             <div className="text-green-600 font-semibold mb-4">Thank you for reaching out! We'll get back to you soon.</div>
           ) : null}
+          {error && <div className="text-red-600 font-semibold mb-4">{error}</div>}
           <div className="mb-6">
             <label className="block mb-2 font-medium text-gray-700 dark:text-soft-gray">Name</label>
             <input
@@ -33,6 +60,7 @@ const ContactPage: React.FC = () => {
               required
               className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-dark-navy text-gray-900 dark:text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-neon-blue focus:border-neon-blue transition placeholder-gray-400 dark:placeholder-soft-gray text-lg"
               placeholder="Your Name"
+              disabled={loading}
             />
           </div>
           <div className="mb-6">
@@ -45,6 +73,7 @@ const ContactPage: React.FC = () => {
               required
               className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-dark-navy text-gray-900 dark:text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-neon-blue focus:border-neon-blue transition placeholder-gray-400 dark:placeholder-soft-gray text-lg"
               placeholder="you@email.com"
+              disabled={loading}
             />
           </div>
           <div className="mb-8">
@@ -56,9 +85,12 @@ const ContactPage: React.FC = () => {
               required
               className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-dark-navy text-gray-900 dark:text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-neon-blue focus:border-neon-blue transition placeholder-gray-400 dark:placeholder-soft-gray text-lg resize-none h-36"
               placeholder="Type your message..."
+              disabled={loading}
             />
           </div>
-          <button type="submit" className="btn-primary w-full py-3 text-lg rounded-xl shadow-md hover:shadow-lg transition">Send Message</button>
+          <button type="submit" className="btn-primary w-full py-3 text-lg rounded-xl shadow-md hover:shadow-lg transition disabled:opacity-60" disabled={loading}>
+            {loading ? 'Sending...' : 'Send Message'}
+          </button>
         </form>
         <div className="flex flex-col justify-between gap-8">
           <div className="bg-white dark:bg-light-navy rounded-2xl shadow-xl p-8 border border-gray-100 dark:border-gray-800 mb-4">

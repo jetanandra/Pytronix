@@ -6,7 +6,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useProfile } from '../context/ProfileContext';
 import { Product } from '../types';
-import { getProductById } from '../services/productService';
+import { getProductById, getCategoryById } from '../services/productService';
 import { toast } from 'react-hot-toast';
 import ReactMarkdown from 'react-markdown';
 
@@ -20,6 +20,7 @@ const ProductDetailPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState<number>(1);
   const [activeImage, setActiveImage] = useState<string>('');
+  const [category, setCategory] = useState<string>('');
   
   useEffect(() => {
     const fetchProduct = async () => {
@@ -36,6 +37,13 @@ const ProductDetailPage: React.FC = () => {
         if (productData) {
           setProduct(productData);
           setActiveImage(productData.image); // Set the main image as active initially
+          // Fetch category name if category_id exists
+          if (productData.category_id) {
+            const cat = await getCategoryById(productData.category_id);
+            setCategory(cat?.name || '');
+          } else {
+            setCategory('');
+          }
         } else {
           setError(`Product not found. The ID "${id}" might not be a valid UUID.`);
         }
@@ -110,9 +118,9 @@ const ProductDetailPage: React.FC = () => {
     );
   }
 
-  // Calculate discount percentage if discountPrice exists
-  const discountPercentage = product.discountPrice
-    ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
+  // Calculate discount percentage if discount_price exists
+  const discountPercentage = product.discount_price
+    ? Math.round(((product.price - product.discount_price) / product.price) * 100)
     : 0;
 
   return (
@@ -125,10 +133,10 @@ const ProductDetailPage: React.FC = () => {
           <Link to="/products" className="hover:text-neon-blue dark:hover:text-neon-blue transition">Products</Link>
           <ChevronRight className="mx-2 w-4 h-4" />
           <Link 
-            to={`/products?category=${encodeURIComponent(product.category)}`}
+            to={`/products?category=${product.category_id ? encodeURIComponent(product.category_id) : ''}`}
             className="hover:text-neon-blue dark:hover:text-neon-blue transition"
           >
-            {product.category}
+            {category}
           </Link>
           <ChevronRight className="mx-2 w-4 h-4" />
           <span className="truncate max-w-[200px]">{product.name}</span>
@@ -147,41 +155,24 @@ const ProductDetailPage: React.FC = () => {
             </div>
             
             {/* Thumbnail Images */}
-            {(product.images?.length || 0) > 0 && (
-              <div className="grid grid-cols-5 gap-2">
-                <div 
-                  className={`h-20 bg-white dark:bg-light-navy rounded-lg overflow-hidden cursor-pointer border-2 ${
-                    activeImage === product.image 
-                      ? 'border-neon-blue' 
-                      : 'border-transparent hover:border-gray-300 dark:hover:border-gray-700'
-                  }`}
-                  onClick={() => setActiveImage(product.image)}
-                >
-                  <img 
-                    src={product.image} 
-                    alt={`${product.name} thumbnail`} 
-                    className="w-full h-full object-contain" 
-                  />
-                </div>
-                
-                {product.images.map((img, index) => (
-                  img && (
-                    <div 
-                      key={index}
-                      className={`h-20 bg-white dark:bg-light-navy rounded-lg overflow-hidden cursor-pointer border-2 ${
-                        activeImage === img 
-                          ? 'border-neon-blue' 
-                          : 'border-transparent hover:border-gray-300 dark:hover:border-gray-700'
-                      }`}
-                      onClick={() => setActiveImage(img)}
-                    >
-                      <img 
-                        src={img} 
-                        alt={`${product.name} thumbnail ${index + 1}`} 
-                        className="w-full h-full object-contain" 
-                      />
-                    </div>
-                  )
+            {product.images && product.images.length > 0 && (
+              <div className="flex flex-row gap-4 overflow-x-auto pb-2">
+                {[product.image, ...product.images].filter(Boolean).map((img, index) => (
+                  <div
+                    key={index}
+                    className={`w-20 h-20 bg-white dark:bg-light-navy rounded-lg overflow-hidden cursor-pointer border-2 flex-shrink-0 ${
+                      activeImage === img
+                        ? 'border-neon-blue'
+                        : 'border-transparent hover:border-gray-300 dark:hover:border-gray-700'
+                    }`}
+                    onClick={() => setActiveImage(img)}
+                  >
+                    <img
+                      src={img}
+                      alt={`${product.name} thumbnail ${index + 1}`}
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
                 ))}
               </div>
             )}
@@ -205,13 +196,17 @@ const ProductDetailPage: React.FC = () => {
               </div>
               
               <div className="text-sm text-gray-600 dark:text-soft-gray">
-                Category: 
-                <Link 
-                  to={`/products?category=${encodeURIComponent(product.category)}`}
-                  className="ml-1 text-neon-blue hover:underline"
-                >
-                  {product.category}
-                </Link>
+                Category:
+                {product.category_id && category ? (
+                  <Link
+                    to={`/products?category=${product.category_id}`}
+                    className="ml-1 text-neon-blue hover:underline"
+                  >
+                    {category}
+                  </Link>
+                ) : (
+                  <span className="ml-1 text-gray-400">N/A</span>
+                )}
               </div>
             </div>
             
@@ -220,7 +215,7 @@ const ProductDetailPage: React.FC = () => {
               {discountPercentage > 0 ? (
                 <div className="flex items-center">
                   <span className="text-3xl font-bold text-gray-900 dark:text-white">
-                    ₹{product.discountPrice?.toLocaleString()}
+                    ₹{product.discount_price?.toLocaleString()}
                   </span>
                   <span className="ml-2 text-lg text-gray-500 dark:text-gray-400 line-through">
                     ₹{product.price.toLocaleString()}

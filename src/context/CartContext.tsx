@@ -22,7 +22,7 @@ interface CartContextType {
 
 const calculateTotal = (items: CartItem[]): number => {
   return items.reduce((total, item) => {
-    const price = item.product.discountPrice || item.product.price;
+    const price = item.product.discount_price || item.product.price;
     return total + price * item.quantity;
   }, 0);
 };

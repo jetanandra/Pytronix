@@ -114,8 +114,8 @@ const Navbar: React.FC = () => {
                   <User className="w-4 h-4 mr-1" />
                   Account <ChevronDown className="ml-1 w-4 h-4" />
                 </button>
-                <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white dark:bg-light-navy opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                  <div className="px-4 py-2 text-sm text-gray-700 dark:text-soft-gray border-b border-gray-200 dark:border-gray-700">
+                <div className="absolute left-1/2 transform -translate-x-1/2 mt-2 w-64 rounded-md shadow-lg py-1 bg-white dark:bg-light-navy opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-30">
+                  <div className="px-4 py-2 text-sm text-gray-700 dark:text-soft-gray border-b border-gray-200 dark:border-gray-700 truncate max-w-xs" title={user.email}>
                     {user.email}
                   </div>
                   <Link to="/orders" className="block px-4 py-2 text-sm text-gray-700 dark:text-soft-gray hover:bg-gray-100 dark:hover:bg-dark-navy">

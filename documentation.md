@@ -397,3 +397,120 @@ The application is configured for deployment to Netlify.
 - Add subscription-based products
 - Implement bundle deals and dynamic pricing
 - Add AI-powered chatbot for customer support
+
+# Recent Updates & Enhancements (2024)
+
+## Major Features Added
+- **Category Management System:**
+  - Admins can create, edit, and delete product categories (with name and image) from the admin panel.
+  - Products are now linked to categories via a `category_id` (UUID), not just a text field.
+  - Admins can assign categories to products.
+  - Categories are displayed on the homepage as clickable cards, in the navbar dropdown, and as filters on the products page.
+  - Clicking a category filters products by that category.
+
+- **Improved Product Search:**
+  - Search bar in the navbar now routes users to the products page and instantly filters products by the search term.
+  - Products page search bar is synced with the URL, so searches from the navbar are reflected immediately.
+
+- **Cart & Order Summary Redesign:**
+  - Cart page now features a modern, responsive table layout with product images, names, prices, quantity controls, and remove buttons.
+  - Order summary now shows:
+    - Total original price (sum of all products' original prices)
+    - Discount applied (total original price minus total selling price)
+    - Total after discount (actual total to pay)
+  - Price display logic fixed: if a product has a discount price, it is shown as the main price, with the original price crossed out.
+
+- **Product Detail Page Enhancements:**
+  - Category name is now fetched and displayed from the categories table.
+  - Product image gallery thumbnails are now horizontal and scrollable, improving the UI.
+  - Breadcrumbs and category links are updated to use the new category system.
+
+- **UI/UX Improvements:**
+  - Account dropdown is now centered below the nav button and handles long emails gracefully.
+  - Button styles (e.g., 'Clear Cart') are now consistent with the rest of the UI.
+  - Various responsive and accessibility improvements.
+
+## Bug Fixes & Technical Improvements
+- Fixed price calculation bugs in the cart and order summary (now uses `discount_price` everywhere).
+- Fixed category display issues on product detail and product list pages.
+- Fixed RLS (Row Level Security) and Supabase policy issues for category management.
+- Fixed search and filter synchronization between navbar and products page.
+- Improved code consistency (naming, types, and service functions).
+
+## Technical Details & Future Improvement Notes
+
+### Category Management System
+- **Database:**
+  - `categories` table uses UUID as primary key. Products reference categories via `category_id` (UUID, foreign key).
+  - RLS (Row Level Security) policies restrict category modification to admin users only.
+- **Frontend:**
+  - Category CRUD handled via service functions in `productService.ts`:
+    ```ts
+    export const getAllCategories = async (): Promise<Category[]> => { ... };
+    export const createCategory = async (category: Omit<Category, 'id' | 'created_at'>): Promise<Category> => { ... };
+    export const deleteCategory = async (id: string): Promise<void> => { ... };
+    export const getCategoryById = async (id: string): Promise<Category | null> => { ... };
+    ```
+  - Product forms and lists now use `category_id` and fetch category names for display.
+- **Future Improvements:**
+  - Add category editing (update name/image).
+  - Support category hierarchy (parent/child categories).
+  - Add category slugs for SEO-friendly URLs.
+
+### Product Search
+- **Logic:**
+  - Navbar search updates the URL (`/products?search=...`), which is read by the Products page to filter products in real time.
+  - Products page search bar is synced with the URL param using React Router's `useSearchParams` and `useEffect`.
+    ```ts
+    const [searchParams] = useSearchParams();
+    const searchParam = searchParams.get('search');
+    useEffect(() => { setSearchQuery(searchParam || ''); }, [searchParam]);
+    ```
+- **Future Improvements:**
+  - Implement server-side search/filtering for large product catalogs.
+  - Add instant search suggestions/autocomplete.
+  - Support advanced search (by tags, specs, etc).
+
+### Cart & Order Summary
+- **Logic:**
+  - Cart state managed via React Context (`CartContext.tsx`), persisted in localStorage.
+  - Price calculation always uses `discount_price` if present, else falls back to `price`:
+    ```ts
+    const price = item.product.discount_price || item.product.price;
+    ```
+  - Order summary computes:
+    ```ts
+    const totalOriginal = items.reduce((sum, { product, quantity }) => sum + product.price * quantity, 0);
+    const totalDiscount = totalOriginal - total;
+    ```
+- **Future Improvements:**
+  - Add coupon/promo code support.
+  - Integrate with payment gateway and order processing.
+  - Show per-product discount breakdown.
+
+### Product Detail Page
+- **Logic:**
+  - Fetches product by ID and then fetches category name by `category_id`.
+  - Image gallery uses a horizontal scrollable row for thumbnails:
+    ```tsx
+    <div className="flex flex-row gap-4 overflow-x-auto pb-2">
+      {[product.image, ...product.images].filter(Boolean).map((img, index) => (
+        <div ... onClick={() => setActiveImage(img)} ...>
+          <img src={img} ... />
+        </div>
+      ))}
+    </div>
+    ```
+- **Future Improvements:**
+  - Add zoom/lightbox for images.
+  - Show category image/badge.
+  - Add related products carousel.
+
+### UI/UX & General
+- **Logic:**
+  - Navbar dropdowns use Tailwind and Framer Motion for smooth, centered, responsive menus.
+  - Button styles are standardized via `.btn-primary`, `.btn-secondary`, etc.
+- **Future Improvements:**
+  - Add skeleton loaders for slow data fetches.
+  - Improve accessibility (ARIA, keyboard navigation).
+  - Add user feedback for all async actions (toasts, spinners).

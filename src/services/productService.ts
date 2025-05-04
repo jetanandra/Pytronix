@@ -132,3 +132,18 @@ export const getProductCategories = async (): Promise<string[]> => {
     return [];
   }
 };
+
+export const getCategoryById = async (id: string): Promise<Category | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error fetching category by id:', error);
+    return null;
+  }
+};

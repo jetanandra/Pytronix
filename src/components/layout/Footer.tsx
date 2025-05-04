@@ -16,7 +16,7 @@ const Footer: React.FC = () => {
               Your one-stop destination for electronics and IoT components across India. Serving engineers, hobbyists, and makers with quality tech solutions.
             </p>
             <div className="flex space-x-4">
-              <a href="#" aria-label="Facebook" className="text-gray-500 hover:text-neon-blue dark:text-gray-400 dark:hover:text-neon-blue transition">
+              <a href="https://www.facebook.com/share/1AZxTjRcGB/?mibextid=wwXIfr" aria-label="Facebook" className="text-gray-500 hover:text-neon-blue dark:text-gray-400 dark:hover:text-neon-blue transition">
                 <Facebook size={20} />
               </a>
               <a href="#" aria-label="Twitter" className="text-gray-500 hover:text-neon-blue dark:text-gray-400 dark:hover:text-neon-blue transition">

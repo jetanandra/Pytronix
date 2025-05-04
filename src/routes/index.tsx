@@ -23,6 +23,8 @@ const BlogPage = lazy(() => import('../pages/BlogPage'));
 const FAQPage = lazy(() => import('../pages/FAQPage'));
 const ShippingReturnsPage = lazy(() => import('../pages/ShippingReturnsPage'));
 const WarrantyPage = lazy(() => import('../pages/WarrantyPage'));
+const ForgotPasswordPage = lazy(() => import('../pages/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('../pages/ResetPasswordPage'));
 
 const AppRoutes: React.FC = () => {
   return (
@@ -67,6 +69,8 @@ const AppRoutes: React.FC = () => {
               <Route path="/faq" element={<FAQPage />} />
               <Route path="/shipping" element={<ShippingReturnsPage />} />
               <Route path="/warranty" element={<WarrantyPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>

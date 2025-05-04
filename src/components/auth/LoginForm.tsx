@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Mail, Lock, User } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import LoaderSpinner from '../ui/LoaderSpinner';
@@ -104,9 +104,9 @@ const LoginForm: React.FC = () => {
               </label>
             </div>
             <div className="text-sm">
-              <a href="#" className="font-medium text-neon-blue hover:text-blue-600">
+              <Link to="/forgot-password" className="font-medium text-neon-blue hover:text-blue-600">
                 Forgot password?
-              </a>
+              </Link>
             </div>
           </div>
         )}

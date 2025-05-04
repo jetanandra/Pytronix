@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply font-inter scroll-smooth;
+  }
+  
+  body {
+    @apply bg-white text-gray-800 dark:bg-dark-navy dark:text-soft-white transition-colors duration-200;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-orbitron font-semibold tracking-wide;
+  }
+}
+
+@layer components {
+  .container-custom {
+    @apply container mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-md font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+  
+  .btn-primary {
+    @apply btn bg-neon-blue text-white hover:bg-blue-600 focus:ring-blue-500 dark:hover:shadow-neon-blue;
+  }
+  
+  .btn-secondary {
+    @apply btn bg-neon-violet text-white hover:bg-purple-600 focus:ring-purple-500 dark:hover:shadow-neon-violet;
+  }
+  
+  .btn-accent {
+    @apply btn bg-neon-green text-white hover:bg-green-600 focus:ring-green-500 dark:hover:shadow-neon-green;
+  }
+  
+  .card {
+    @apply bg-white dark:bg-light-navy rounded-lg shadow-md transition-all duration-200 overflow-hidden;
+  }
+  
+  .loader {
+    @apply w-6 h-6 border-2 border-t-neon-blue rounded-full animate-spin;
+  }
+
+  .neon-text {
+    @apply font-orbitron;
+    text-shadow: 0 0 5px currentColor, 0 0 10px currentColor;
+  }
+}

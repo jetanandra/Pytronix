@@ -17,6 +17,12 @@ const ProfilePage = lazy(() => import('../pages/ProfilePage'));
 const NotFoundPage = lazy(() => import('../pages/NotFoundPage'));
 const AdminSetupPage = lazy(() => import('../pages/AdminSetupPage'));
 const AdminCategoryPage = lazy(() => import('../pages/admin/AdminCategoryPage'));
+const AboutUsPage = lazy(() => import('../pages/AboutUsPage'));
+const ContactPage = lazy(() => import('../pages/ContactPage'));
+const BlogPage = lazy(() => import('../pages/BlogPage'));
+const FAQPage = lazy(() => import('../pages/FAQPage'));
+const ShippingReturnsPage = lazy(() => import('../pages/ShippingReturnsPage'));
+const WarrantyPage = lazy(() => import('../pages/WarrantyPage'));
 
 const AppRoutes: React.FC = () => {
   return (
@@ -55,6 +61,12 @@ const AppRoutes: React.FC = () => {
                   <AdminCategoryPage />
                 </AuthGuard>
               } />
+              <Route path="/about" element={<AboutUsPage />} />
+              <Route path="/contact" element={<ContactPage />} />
+              <Route path="/blog" element={<BlogPage />} />
+              <Route path="/faq" element={<FAQPage />} />
+              <Route path="/shipping" element={<ShippingReturnsPage />} />
+              <Route path="/warranty" element={<WarrantyPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>

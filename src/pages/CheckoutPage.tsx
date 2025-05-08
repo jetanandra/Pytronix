@@ -4,7 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useProfile } from '../context/ProfileContext';
 import { createOrder } from '../services/orderService';
-import { Address } from '../types';
+import { Address, Order } from '../types';
 import { 
   CheckCircle, 
   CreditCard, 
@@ -14,10 +14,13 @@ import {
   Plus, 
   Trash, 
   AlertTriangle,
-  ArrowLeft
+  ArrowLeft,
+  DollarSign,
+  IndianRupee
 } from 'lucide-react';
 import LoaderSpinner from '../components/ui/LoaderSpinner';
 import { toast } from 'react-hot-toast';
+import RazorpayCheckout from '../components/payment/RazorpayCheckout';
 
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
@@ -29,6 +32,7 @@ const CheckoutPage: React.FC = () => {
   const [showAddressForm, setShowAddressForm] = useState<boolean>(false);
   const [paymentMethod, setPaymentMethod] = useState<string>('cod');
   const [orderLoading, setOrderLoading] = useState<boolean>(false);
+  const [order, setOrder] = useState<Order | null>(null);
   
   // Address form state
   const [addressForm, setAddressForm] = useState({
@@ -138,31 +142,50 @@ const CheckoutPage: React.FC = () => {
       // Create payment details object for the order
       const paymentDetails = {
         method: paymentMethod,
-        status: paymentMethod === 'cod' ? 'pending' : 'paid',
+        status: paymentMethod === 'cod' ? 'pending' : 'initiated',
         date: new Date().toISOString()
       };
       
       // Create the order
-      const order = await createOrder(shippingAddress, paymentDetails);
+      const createdOrder = await createOrder(shippingAddress, paymentDetails);
       
-      if (!order) {
+      if (!createdOrder) {
         throw new Error('Failed to create order');
       }
       
-      // Clear the cart
-      clearCart();
+      // For Razorpay payments, store the order and show the Razorpay checkout
+      if (paymentMethod === 'razorpay') {
+        setOrder(createdOrder);
+        return;
+      }
+      
+      // For COD, the cart is already cleared in the createOrder function
       
       // Show success message
       toast.success('Order placed successfully!');
       
       // Navigate to the order details page
-      navigate(`/orders/${order.id}`);
+      navigate(`/orders/${createdOrder.id}`);
     } catch (error) {
       console.error('Error placing order:', error);
       toast.error('Failed to place order');
     } finally {
-      setOrderLoading(false);
+      if (paymentMethod !== 'razorpay') {
+        setOrderLoading(false);
+      }
     }
+  };
+  
+  const handlePaymentCancelled = () => {
+    setOrder(null);
+    setOrderLoading(false);
+    toast.error('Payment was cancelled');
+  };
+  
+  const handlePaymentSuccess = () => {
+    clearCart();
+    setOrder(null);
+    setOrderLoading(false);
   };
   
   if (addressesLoading) {
@@ -173,7 +196,7 @@ const CheckoutPage: React.FC = () => {
     );
   }
   
-  if (cart.items.length === 0) {
+  if (cart.items.length === 0 && !order) {
     return (
       <div className="min-h-screen pt-32 pb-12">
         <div className="container-custom">
@@ -191,6 +214,29 @@ const CheckoutPage: React.FC = () => {
             >
               Browse Products
             </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // If we have an order with Razorpay payment, show the Razorpay checkout
+  if (order && order.payment_details?.method === 'razorpay') {
+    return (
+      <div className="min-h-screen pt-32 pb-12">
+        <div className="container-custom max-w-md mx-auto">
+          <div className="bg-white dark:bg-light-navy rounded-lg shadow-lg p-8 text-center">
+            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+              Completing Your Payment
+            </h2>
+            <p className="text-gray-600 dark:text-soft-gray mb-6">
+              Please complete the payment process with Razorpay. Do not close this window.
+            </p>
+            <RazorpayCheckout 
+              order={order} 
+              onSuccess={handlePaymentSuccess}
+              onCancel={handlePaymentCancelled}
+            />
           </div>
         </div>
       </div>
@@ -469,6 +515,33 @@ const CheckoutPage: React.FC = () => {
               
               <div className="p-6">
                 <div className="space-y-4">
+                  {/* Razorpay Option */}
+                  <div 
+                    className={`border rounded-lg p-4 transition-all cursor-pointer ${
+                      paymentMethod === 'razorpay' 
+                        ? 'border-neon-blue dark:border-neon-blue bg-blue-50 dark:bg-blue-900/20' 
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                    }`}
+                    onClick={() => setPaymentMethod('razorpay')}
+                  >
+                    <div className="flex items-center">
+                      <input
+                        type="radio"
+                        checked={paymentMethod === 'razorpay'}
+                        onChange={() => setPaymentMethod('razorpay')}
+                        className="h-4 w-4 text-neon-blue focus:ring-neon-blue border-gray-300"
+                      />
+                      <div className="ml-3">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          Pay Online (Razorpay)
+                        </p>
+                        <p className="text-sm text-gray-600 dark:text-soft-gray">
+                          Pay securely with Credit/Debit card, Net Banking, UPI, or Wallets
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
                   {/* COD Option */}
                   <div 
                     className={`border rounded-lg p-4 transition-all cursor-pointer ${
@@ -491,43 +564,6 @@ const CheckoutPage: React.FC = () => {
                         </p>
                         <p className="text-sm text-gray-600 dark:text-soft-gray">
                           Pay when your order is delivered
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Prepaid Options (Coming Soon) */}
-                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 opacity-60 cursor-not-allowed">
-                    <div className="flex items-center">
-                      <input
-                        type="radio"
-                        disabled
-                        className="h-4 w-4 text-gray-400 focus:ring-gray-400 border-gray-300"
-                      />
-                      <div className="ml-3">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white flex items-center">
-                          Credit/Debit Card <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded ml-2">Coming Soon</span>
-                        </p>
-                        <p className="text-sm text-gray-600 dark:text-soft-gray">
-                          Pay securely using your card
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 opacity-60 cursor-not-allowed">
-                    <div className="flex items-center">
-                      <input
-                        type="radio"
-                        disabled
-                        className="h-4 w-4 text-gray-400 focus:ring-gray-400 border-gray-300"
-                      />
-                      <div className="ml-3">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white flex items-center">
-                          UPI <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded ml-2">Coming Soon</span>
-                        </p>
-                        <p className="text-sm text-gray-600 dark:text-soft-gray">
-                          Pay using UPI apps like Google Pay, PhonePe, etc.
                         </p>
                       </div>
                     </div>
@@ -600,11 +636,28 @@ const CheckoutPage: React.FC = () => {
                   <LoaderSpinner size="sm" color="blue" />
                 ) : (
                   <>
-                    <CheckCircle className="w-5 h-5 mr-2" />
-                    Place Order
+                    {paymentMethod === 'razorpay' ? (
+                      <>
+                        <IndianRupee className="w-5 h-5 mr-2" />
+                        Pay with Razorpay
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-5 h-5 mr-2" />
+                        Place Order
+                      </>
+                    )}
                   </>
                 )}
               </button>
+              
+              {paymentMethod === 'razorpay' && (
+                <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md">
+                  <p className="text-xs text-blue-800 dark:text-blue-200 text-center">
+                    You'll be redirected to Razorpay's secure payment page to complete your payment
+                  </p>
+                </div>
+              )}
               
               <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-4">
                 By placing your order, you agree to our Terms of Service and Privacy Policy

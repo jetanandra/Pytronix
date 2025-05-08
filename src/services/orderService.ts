@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabaseClient';
 import { Order, OrderItem } from '../types';
 import { toast } from 'react-hot-toast';
+import { createRazorpayOrder } from './paymentService';
 
 // Get all orders for admin
 export const getAllOrders = async (): Promise<Order[]> => {
@@ -113,8 +114,44 @@ export const createOrder = async (
       
     if (itemsError) throw itemsError;
     
-    // Clear cart
-    localStorage.removeItem('pytronix-cart');
+    // If using Razorpay, create a Razorpay order
+    if (paymentDetails.method === 'razorpay') {
+      const razorpayOrder = await createRazorpayOrder(cart.total, order.id);
+      
+      if (!razorpayOrder) {
+        throw new Error('Failed to create Razorpay order');
+      }
+      
+      // Update the order with Razorpay details
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({
+          payment_details: {
+            ...paymentDetails,
+            razorpay_order_id: razorpayOrder.id
+          }
+        })
+        .eq('id', order.id);
+        
+      if (updateError) {
+        console.error('Error updating order with Razorpay details:', updateError);
+      }
+      
+      // Return the order with Razorpay details
+      return {
+        ...order,
+        payment_details: {
+          ...paymentDetails,
+          razorpay_order_id: razorpayOrder.id,
+          razorpay_key: razorpayOrder.key
+        }
+      };
+    }
+    
+    // For non-Razorpay orders, clear cart now
+    if (paymentDetails.method === 'cod') {
+      localStorage.removeItem('pytronix-cart');
+    }
     
     return order;
   } catch (error) {

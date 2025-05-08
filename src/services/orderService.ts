@@ -143,6 +143,32 @@ export const updateOrderStatus = async (id: string, status: string): Promise<Ord
   }
 };
 
+// Update order tracking information
+export const updateOrderTracking = async (
+  id: string, 
+  trackingInfo: { 
+    tracking_id: string;
+    tracking_url?: string;
+    shipping_carrier?: string;
+  }
+): Promise<Order | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .update(trackingInfo)
+      .eq('id', id)
+      .select()
+      .single();
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error updating tracking information:', error);
+    toast.error('Failed to update tracking information');
+    return null;
+  }
+};
+
 // Cancel an order
 export const cancelOrder = async (id: string): Promise<boolean> => {
   try {

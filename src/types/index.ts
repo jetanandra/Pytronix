@@ -112,6 +112,9 @@ export interface Order {
   payment_details?: any;
   created_at: string;
   items?: OrderItem[];
+  tracking_id?: string;
+  tracking_url?: string;
+  shipping_carrier?: string;
 }
 
 export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';

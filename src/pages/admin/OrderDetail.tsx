@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { getOrderById, updateOrderStatus, deleteOrder } from '../../services/orderService';
+import { getOrderById, updateOrderStatus, deleteOrder, updateOrderTracking } from '../../services/orderService';
 import { Order, OrderStatus } from '../../types';
 import { 
   ArrowLeft, 
@@ -17,7 +17,8 @@ import {
   ShoppingBag,
   CalendarRange,
   AlertTriangle,
-  Printer
+  Printer,
+  LinkIcon
 } from 'lucide-react';
 import LoaderSpinner from '../../components/ui/LoaderSpinner';
 import { toast } from 'react-hot-toast';
@@ -29,6 +30,13 @@ const OrderDetail: React.FC = () => {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Tracking information state
+  const [trackingId, setTrackingId] = useState<string>('');
+  const [trackingUrl, setTrackingUrl] = useState<string>('');
+  const [shippingCarrier, setShippingCarrier] = useState<string>('');
+  const [showTrackingForm, setShowTrackingForm] = useState<boolean>(false);
+  const [updatingTracking, setUpdatingTracking] = useState<boolean>(false);
   
   useEffect(() => {
     const fetchOrder = async () => {
@@ -42,6 +50,10 @@ const OrderDetail: React.FC = () => {
         const orderData = await getOrderById(id);
         if (orderData) {
           setOrder(orderData);
+          // Initialize tracking form values if they exist
+          if (orderData.tracking_id) setTrackingId(orderData.tracking_id);
+          if (orderData.tracking_url) setTrackingUrl(orderData.tracking_url);
+          if (orderData.shipping_carrier) setShippingCarrier(orderData.shipping_carrier);
         } else {
           setError(`Order with ID ${id} not found`);
         }
@@ -64,10 +76,50 @@ const OrderDetail: React.FC = () => {
       if (updated) {
         setOrder({ ...order, status: newStatus });
         toast.success(`Order status updated to ${newStatus}`);
+        
+        // If status is changed to shipped, show the tracking form
+        if (newStatus === 'shipped' && !order.tracking_id) {
+          setShowTrackingForm(true);
+        }
       }
     } catch (error) {
       console.error('Error updating order status:', error);
       toast.error('Failed to update order status');
+    }
+  };
+  
+  const handleUpdateTracking = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!order) return;
+    
+    if (!trackingId.trim()) {
+      toast.error('Tracking ID is required');
+      return;
+    }
+    
+    try {
+      setUpdatingTracking(true);
+      const updated = await updateOrderTracking(order.id, {
+        tracking_id: trackingId.trim(),
+        tracking_url: trackingUrl.trim(),
+        shipping_carrier: shippingCarrier.trim()
+      });
+      
+      if (updated) {
+        setOrder({
+          ...order,
+          tracking_id: trackingId.trim(),
+          tracking_url: trackingUrl.trim(),
+          shipping_carrier: shippingCarrier.trim()
+        });
+        setShowTrackingForm(false);
+        toast.success('Tracking information updated');
+      }
+    } catch (error) {
+      console.error('Error updating tracking information:', error);
+      toast.error('Failed to update tracking information');
+    } finally {
+      setUpdatingTracking(false);
     }
   };
   
@@ -301,6 +353,142 @@ const OrderDetail: React.FC = () => {
               </div>
             )}
           </div>
+          
+          {/* Tracking Information Section - Only visible for shipped orders */}
+          {order.status === 'shipped' && (
+            <div className="bg-white dark:bg-light-navy rounded-lg shadow p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-semibold text-gray-900 dark:text-white flex items-center">
+                  <TruckIcon className="w-5 h-5 mr-2 text-purple-500" />
+                  Tracking Information
+                </h3>
+                
+                {!showTrackingForm && (
+                  <button 
+                    onClick={() => setShowTrackingForm(true)}
+                    className="text-neon-blue hover:text-blue-700 text-sm"
+                  >
+                    {order.tracking_id ? 'Edit Tracking' : 'Add Tracking'}
+                  </button>
+                )}
+              </div>
+              
+              {showTrackingForm ? (
+                <form onSubmit={handleUpdateTracking} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-soft-gray mb-1">
+                      Tracking ID/Number <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={trackingId}
+                      onChange={(e) => setTrackingId(e.target.value)}
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-dark-navy"
+                      placeholder="e.g. 1Z999AA10123456784"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-soft-gray mb-1">
+                      Shipping Carrier
+                    </label>
+                    <select
+                      value={shippingCarrier}
+                      onChange={(e) => setShippingCarrier(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-dark-navy"
+                    >
+                      <option value="">Select carrier</option>
+                      <option value="DTDC">DTDC</option>
+                      <option value="Delhivery">Delhivery</option>
+                      <option value="Bluedart">Bluedart</option>
+                      <option value="Ecom Express">Ecom Express</option>
+                      <option value="India Post">India Post</option>
+                      <option value="FedEx">FedEx</option>
+                      <option value="DHL">DHL</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-soft-gray mb-1">
+                      Tracking URL
+                    </label>
+                    <input
+                      type="url"
+                      value={trackingUrl}
+                      onChange={(e) => setTrackingUrl(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-dark-navy"
+                      placeholder="https://example.com/track/1Z999AA10123456784"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Direct link where the customer can track this shipment
+                    </p>
+                  </div>
+                  
+                  <div className="flex justify-end space-x-4 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowTrackingForm(false)}
+                      className="px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-soft-gray hover:bg-gray-100 dark:hover:bg-dark-navy/60 transition"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={updatingTracking || !trackingId.trim()}
+                      className="btn-primary"
+                    >
+                      {updatingTracking ? (
+                        <LoaderSpinner size="sm" />
+                      ) : (
+                        'Save Tracking Information'
+                      )}
+                    </button>
+                  </div>
+                </form>
+              ) : order.tracking_id ? (
+                <div className="space-y-3">
+                  <div className="flex items-start">
+                    <span className="text-gray-600 dark:text-soft-gray w-28">Tracking ID:</span>
+                    <span className="text-gray-900 dark:text-white font-medium">
+                      {order.tracking_id}
+                    </span>
+                  </div>
+                  {order.shipping_carrier && (
+                    <div className="flex items-start">
+                      <span className="text-gray-600 dark:text-soft-gray w-28">Carrier:</span>
+                      <span className="text-gray-900 dark:text-white">
+                        {order.shipping_carrier}
+                      </span>
+                    </div>
+                  )}
+                  {order.tracking_url && (
+                    <div className="flex items-start">
+                      <span className="text-gray-600 dark:text-soft-gray w-28">Track Online:</span>
+                      <a 
+                        href={order.tracking_url} 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-neon-blue hover:underline flex items-center"
+                      >
+                        Track Package <LinkIcon className="w-3 h-3 ml-1" />
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-4 rounded-r">
+                  <div className="flex items-start">
+                    <AlertTriangle className="w-5 h-5 text-yellow-400 mr-3 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                      No tracking information has been added yet. Add tracking details to help the customer track their package.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           
           {/* Order Items */}
           <div className="bg-white dark:bg-light-navy rounded-lg shadow overflow-hidden">

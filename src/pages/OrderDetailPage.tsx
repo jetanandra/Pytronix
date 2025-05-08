@@ -11,7 +11,8 @@ import {
   XCircle, 
   Clock, 
   Download,
-  ExternalLink
+  ExternalLink,
+  LinkIcon
 } from 'lucide-react';
 import LoaderSpinner from '../components/ui/LoaderSpinner';
 import { toast } from 'react-hot-toast';
@@ -256,6 +257,43 @@ const OrderDetailPage: React.FC = () => {
                 </div>
               </div>
             </div>
+            
+            {/* Tracking Information - Show only if order is shipped and tracking info exists */}
+            {order.status === 'shipped' && order.tracking_id && (
+              <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex items-center mb-3">
+                  <LinkIcon className="w-4 h-4 text-neon-blue mr-1" />
+                  <h3 className="font-medium text-gray-900 dark:text-white">
+                    Tracking Information
+                  </h3>
+                </div>
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                  <div className="flex flex-col space-y-2">
+                    <p className="text-sm text-gray-700 dark:text-soft-gray">
+                      <span className="font-medium">Tracking Number:</span> {order.tracking_id}
+                    </p>
+                    
+                    {order.shipping_carrier && (
+                      <p className="text-sm text-gray-700 dark:text-soft-gray">
+                        <span className="font-medium">Carrier:</span> {order.shipping_carrier}
+                      </p>
+                    )}
+                    
+                    {order.tracking_url && (
+                      <a
+                        href={order.tracking_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-primary flex items-center justify-center mt-2"
+                      >
+                        <TruckIcon className="w-4 h-4 mr-2" />
+                        Track Your Package
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
         

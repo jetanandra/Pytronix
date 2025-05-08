@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import { Order, OrderStatus } from '../types';
 import { toast } from 'react-hot-toast';
 
 interface OrderDetails {
@@ -6,18 +7,6 @@ interface OrderDetails {
   total: number;
   shipping_address: any;
   payment_details: any;
-}
-
-interface RazorpayOrder {
-  id: string;
-  entity: string;
-  amount: number;
-  amount_paid: number;
-  amount_due: number;
-  currency: string;
-  receipt: string;
-  status: string;
-  created_at: number;
 }
 
 /**
@@ -28,9 +17,9 @@ export const getUserOrders = async () => {
     .from('orders')
     .select(`
       *,
-      order_items (
+      items:order_items (
         *,
-        product: product_id (
+        product:product_id (
           id,
           name,
           price,
@@ -57,9 +46,9 @@ export const getOrderById = async (id: string) => {
     .from('orders')
     .select(`
       *,
-      order_items (
+      items:order_items (
         *,
-        product: product_id (
+        product:product_id (
           id,
           name,
           price,
@@ -82,9 +71,14 @@ export const getOrderById = async (id: string) => {
 /**
  * Create a Razorpay order
  */
-export const createRazorpayOrder = async (orderId: string, amount: number): Promise<RazorpayOrder> => {
+export const createRazorpayOrder = async (orderId: string, amount: number) => {
   try {
     const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      console.error('No active session');
+      throw new Error('Authentication required');
+    }
 
     const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/razorpay-create-order`, {
       method: 'POST',
@@ -94,24 +88,17 @@ export const createRazorpayOrder = async (orderId: string, amount: number): Prom
       },
       body: JSON.stringify({
         orderId,
-        amount: Math.round(amount * 100) // Razorpay amount in paise
+        amount: Math.round(amount) // Razorpay amount in rupees
       })
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Failed to create Razorpay order: ${errorText}`);
+      console.error('Razorpay error response:', errorText);
+      throw new Error(`Failed to create Razorpay order: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json();
-    
-    // Update the order with Razorpay order ID
-    await supabase
-      .from('orders')
-      .update({ razorpay_order_id: data.id })
-      .eq('id', orderId);
-
-    return data;
+    return await response.json();
   } catch (error) {
     console.error('Error creating Razorpay order:', error);
     toast.error('Failed to create payment order');
@@ -129,6 +116,11 @@ export const verifyRazorpayPayment = async (
 ) => {
   try {
     const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      console.error('No active session');
+      throw new Error('Authentication required');
+    }
 
     const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/razorpay-verify-payment`, {
       method: 'POST',
@@ -148,18 +140,7 @@ export const verifyRazorpayPayment = async (
       throw new Error(`Payment verification failed: ${errorText}`);
     }
 
-    const data = await response.json();
-    
-    // Update order with payment status and payment ID
-    await supabase
-      .from('orders')
-      .update({
-        status: 'paid',
-        razorpay_payment_id: razorpayPaymentId
-      })
-      .eq('id', orderId);
-
-    return data;
+    return await response.json();
   } catch (error) {
     console.error('Error verifying payment:', error);
     throw error;
@@ -171,27 +152,28 @@ export const verifyRazorpayPayment = async (
  */
 export const createOrder = async (orderDetails: OrderDetails): Promise<{ id: string, order_id: string }> => {
   try {
-    // Make sure user is authenticated
+    // Make sure we have the active session and get the correct user_id
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       throw new Error("User not authenticated");
     }
 
-    // Make sure user_id matches the authenticated user
-    if (orderDetails.user_id !== session.user.id) {
-      orderDetails.user_id = session.user.id;
-    }
+    // Always set user_id to the authenticated user to prevent RLS policy violations
+    const safeOrderDetails = {
+      ...orderDetails,
+      user_id: session.user.id
+    };
 
     // Insert the order
     const { data, error } = await supabase
       .from('orders')
-      .insert([orderDetails])
+      .insert([safeOrderDetails])
       .select()
       .single();
 
     if (error) {
       console.error('Error creating order:', error);
-      throw new Error('Failed to create order');
+      throw new Error(`Failed to create order: ${error.message}`);
     }
 
     // Generate a readable order ID (use first 8 chars of UUID)
@@ -208,9 +190,9 @@ export const createOrder = async (orderDetails: OrderDetails): Promise<{ id: str
 };
 
 /**
- * Get order history for the current user
+ * Get all orders (admin function)
  */
-export const getOrderHistory = async () => {
+export const getAllOrders = async () => {
   try {
     const { data, error } = await supabase
       .from('orders')
@@ -218,13 +200,13 @@ export const getOrderHistory = async () => {
       .order('created_at', { ascending: false });
       
     if (error) {
-      console.error('Error fetching order history:', error);
+      console.error('Error fetching all orders:', error);
       throw error;
     }
     
     return data || [];
   } catch (error) {
-    console.error('Error in getOrderHistory:', error);
+    console.error('Error in getAllOrders:', error);
     throw error;
   }
 };
@@ -248,5 +230,136 @@ export const updateOrderStatus = async (orderId: string, status: string) => {
   } catch (error) {
     console.error('Error in updateOrderStatus:', error);
     throw error;
+  }
+};
+
+/**
+ * Cancel an order
+ */
+export const cancelOrder = async (orderId: string) => {
+  try {
+    const { error } = await supabase
+      .from('orders')
+      .update({ 
+        status: 'cancelled',
+        payment_details: {
+          status: 'cancelled'
+        }
+      })
+      .eq('id', orderId);
+      
+    if (error) {
+      console.error('Error cancelling order:', error);
+      throw error;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error in cancelOrder:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete an order (admin only)
+ */
+export const deleteOrder = async (orderId: string) => {
+  try {
+    // Delete order items first
+    const { error: itemsError } = await supabase
+      .from('order_items')
+      .delete()
+      .eq('order_id', orderId);
+      
+    if (itemsError) {
+      console.error('Error deleting order items:', itemsError);
+      throw itemsError;
+    }
+    
+    // Then delete the order
+    const { error } = await supabase
+      .from('orders')
+      .delete()
+      .eq('id', orderId);
+      
+    if (error) {
+      console.error('Error deleting order:', error);
+      throw error;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error in deleteOrder:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update order tracking information
+ */
+export const updateOrderTracking = async (
+  orderId: string,
+  trackingInfo: {
+    tracking_id: string;
+    tracking_url?: string;
+    shipping_carrier?: string;
+  }
+) => {
+  try {
+    const { error } = await supabase
+      .from('orders')
+      .update(trackingInfo)
+      .eq('id', orderId);
+      
+    if (error) {
+      console.error('Error updating tracking info:', error);
+      throw error;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error in updateOrderTracking:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get order count by status
+ */
+export const getOrderStatusCounts = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('status');
+      
+    if (error) {
+      console.error('Error fetching orders for counting:', error);
+      throw error;
+    }
+    
+    const counts = {
+      pending: 0,
+      processing: 0,
+      shipped: 0,
+      delivered: 0,
+      cancelled: 0
+    };
+    
+    data.forEach(order => {
+      if (counts.hasOwnProperty(order.status)) {
+        counts[order.status as keyof typeof counts]++;
+      }
+    });
+    
+    return counts;
+  } catch (error) {
+    console.error('Error in getOrderStatusCounts:', error);
+    return {
+      pending: 0,
+      processing: 0,
+      shipped: 0,
+      delivered: 0,
+      cancelled: 0
+    };
   }
 };

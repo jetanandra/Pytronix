@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { ShoppingCart, Trash, Plus, Minus } from 'lucide-react';
 import LoaderSpinner from '../components/ui/LoaderSpinner';
@@ -7,6 +7,7 @@ import LoaderSpinner from '../components/ui/LoaderSpinner';
 const CartPage: React.FC = () => {
   const { cart, updateQuantity, removeFromCart, clearCart } = useCart();
   const { items, total } = cart;
+  const navigate = useNavigate();
 
   if (!items) {
     return (
@@ -19,6 +20,10 @@ const CartPage: React.FC = () => {
   // Calculate total original price and discount
   const totalOriginal = items.reduce((sum, { product, quantity }) => sum + product.price * quantity, 0);
   const totalDiscount = totalOriginal - total;
+
+  const handleCheckout = () => {
+    navigate('/checkout');
+  };
 
   return (
     <div className="container-custom py-16 min-h-screen">
@@ -141,7 +146,11 @@ const CartPage: React.FC = () => {
               <span className="text-gray-700 dark:text-soft-gray">Shipping</span>
               <span className="text-gray-500 dark:text-soft-gray">Calculated at checkout</span>
             </div>
-            <button className="btn-primary w-full py-3 text-lg font-semibold mt-2" disabled={items.length === 0}>
+            <button 
+              className="btn-primary w-full py-3 text-lg font-semibold mt-2" 
+              disabled={items.length === 0}
+              onClick={handleCheckout}
+            >
               Proceed to Checkout
             </button>
             <p className="text-xs text-gray-500 dark:text-soft-gray mt-4 text-center">

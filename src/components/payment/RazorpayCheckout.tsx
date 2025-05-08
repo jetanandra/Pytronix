@@ -178,16 +178,6 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
     );
   }
   
-  if (!scriptLoaded) {
-    return (
-      <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
-        <p className="text-red-600 dark:text-red-400 text-sm">
-          Failed to load payment gateway. Please try again or contact support.
-        </p>
-      </div>
-    );
-  }
-  
   if (error) {
     return (
       <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">

@@ -20,7 +20,7 @@ export const getUserOrders = async () => {
       *,
       items:order_items (
         *,
-        product:product_id (
+        product:products (
           id,
           name,
           price,
@@ -49,7 +49,7 @@ export const getOrderById = async (id: string) => {
       *,
       items:order_items (
         *,
-        product:product_id (
+        product:products (
           id,
           name,
           price,
@@ -156,7 +156,13 @@ export const getAllOrders = async () => {
   try {
     const { data, error } = await supabase
       .from('orders')
-      .select('*')
+      .select(`
+        *,
+        items:order_items (
+          id,
+          quantity
+        )
+      `)
       .order('created_at', { ascending: false });
       
     if (error) {
@@ -174,7 +180,7 @@ export const getAllOrders = async () => {
 /**
  * Update order status
  */
-export const updateOrderStatus = async (orderId: string, status: string) => {
+export const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
   try {
     const { error } = await supabase
       .from('orders')

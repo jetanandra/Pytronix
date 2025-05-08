@@ -12,7 +12,8 @@ import {
   AlertTriangle,
   ChevronRight,
   CalendarDays,
-  ExternalLink
+  ExternalLink,
+  ShoppingCart
 } from 'lucide-react';
 import LoaderSpinner from '../components/ui/LoaderSpinner';
 
@@ -26,6 +27,7 @@ const OrdersPage: React.FC = () => {
       try {
         setLoading(true);
         const data = await getUserOrders();
+        console.log("Fetched orders:", data);
         setOrders(data);
       } catch (error) {
         console.error('Error fetching orders:', error);
@@ -154,9 +156,37 @@ const OrdersPage: React.FC = () => {
                   
                   <div className="flex flex-col sm:flex-row gap-4 mt-2 w-full">
                     <div className="flex-grow">
-                      <div className="text-sm text-gray-600 dark:text-soft-gray mb-1">
+                      <div className="text-sm text-gray-600 dark:text-soft-gray mb-2">
                         Items: <span className="font-medium">{order.items?.length || 'N/A'}</span>
                       </div>
+                      
+                      {/* Order Items Preview - Show first 2-3 items */}
+                      {order.items && order.items.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {order.items.slice(0, 3).map((item) => (
+                            <div key={item.id} className="flex items-center bg-gray-50 dark:bg-dark-navy rounded-md p-1">
+                              {item.product?.image && (
+                                <img 
+                                  src={item.product.image} 
+                                  alt={item.product?.name || ''} 
+                                  className="w-8 h-8 object-contain rounded-sm mr-2"
+                                />
+                              )}
+                              <span className="text-xs text-gray-700 dark:text-gray-300">
+                                {item.quantity}x
+                              </span>
+                            </div>
+                          ))}
+                          {order.items.length > 3 && (
+                            <div className="flex items-center justify-center bg-gray-50 dark:bg-dark-navy rounded-md p-1 w-8 h-8">
+                              <span className="text-xs text-gray-700 dark:text-gray-300">
+                                +{order.items.length - 3}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
                       <div className="text-sm text-gray-600 dark:text-soft-gray">
                         Total: <span className="font-medium text-gray-900 dark:text-white">₹{Number(order.total).toLocaleString()}</span>
                       </div>

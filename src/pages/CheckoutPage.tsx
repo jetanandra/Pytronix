@@ -323,7 +323,7 @@ const CheckoutPage: React.FC = () => {
   return (
     <div className="min-h-screen pt-32 pb-12">
       <div className="container-custom">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">
+        <h1 className="text-3xl font-bold mb-8 text-gray-900 dark:text-white">
           Checkout
         </h1>
         
@@ -533,18 +533,18 @@ const CheckoutPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
-
-                {paymentError && (
-                  <div className="mt-4 bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
-                    <div className="flex items-start">
-                      <AlertTriangle className="w-5 h-5 text-red-500 mr-2 flex-shrink-0" />
-                      <p className="text-sm text-red-600 dark:text-red-400">
-                        {paymentError}
-                      </p>
-                    </div>
-                  </div>
-                )}
               </div>
+
+              {paymentError && (
+                <div className="mt-4 bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
+                  <div className="flex items-start">
+                    <AlertTriangle className="w-5 h-5 text-red-500 mr-2 flex-shrink-0" />
+                    <p className="text-sm text-red-600 dark:text-red-400">
+                      {paymentError}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           
@@ -597,7 +597,7 @@ const CheckoutPage: React.FC = () => {
                   <span>Included</span>
                 </div>
                 <div className="flex justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <span className="text-lg font-bold text-gray-900 dark:text-white">Total</span>
+                  <span className="text-lg font-semibold text-gray-900 dark:text-white">Total</span>
                   <span className="text-lg font-bold text-neon-blue">₹{cart.total.toLocaleString()}</span>
                 </div>
               </div>

@@ -36,6 +36,7 @@ const OrderDetailPage: React.FC = () => {
         
         const orderData = await getOrderById(id);
         if (orderData) {
+          console.log("Order data received:", orderData);
           setOrder(orderData);
         } else {
           setError(`Order not found`);
@@ -326,40 +327,46 @@ const OrderDetailPage: React.FC = () => {
             </div>
             
             <div className="divide-y divide-gray-200 dark:divide-gray-700">
-              {order.items?.map((item) => (
-                <div key={item.id} className="p-4 flex items-start sm:items-center flex-col sm:flex-row sm:justify-between">
-                  <div className="flex items-center flex-1">
-                    <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-dark-navy">
-                      {item.product?.image && (
-                        <img 
-                          src={item.product.image} 
-                          alt={item.product?.name} 
-                          className="h-full w-full object-contain"
-                        />
-                      )}
-                    </div>
-                    <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900 dark:text-white flex items-center">
-                        {item.product?.name || "Unknown Product"}
-                        <Link to={`/product/${item.product_id}`} className="ml-1 text-neon-blue hover:text-blue-700 inline-flex items-center">
-                          <ExternalLink className="w-3 h-3" />
-                        </Link>
+              {order.items?.length > 0 ? (
+                order.items.map((item) => (
+                  <div key={item.id} className="p-4 flex items-start sm:items-center flex-col sm:flex-row sm:justify-between">
+                    <div className="flex items-center flex-1">
+                      <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-dark-navy">
+                        {item.product?.image && (
+                          <img 
+                            src={item.product.image} 
+                            alt={item.product?.name} 
+                            className="h-full w-full object-contain"
+                          />
+                        )}
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Quantity: {item.quantity}
+                      <div className="ml-4">
+                        <div className="text-sm font-medium text-gray-900 dark:text-white flex items-center">
+                          {item.product?.name || "Unknown Product"}
+                          <Link to={`/product/${item.product_id}`} className="ml-1 text-neon-blue hover:text-blue-700 inline-flex items-center">
+                            <ExternalLink className="w-3 h-3" />
+                          </Link>
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          Quantity: {item.quantity}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right mt-3 sm:mt-0 w-full sm:w-auto">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">
+                        ₹{Number(item.price).toLocaleString()} per item
+                      </div>
+                      <div className="text-sm font-bold text-neon-blue mt-1">
+                        ₹{(Number(item.price) * item.quantity).toLocaleString()}
                       </div>
                     </div>
                   </div>
-                  <div className="text-right mt-3 sm:mt-0 w-full sm:w-auto">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">
-                      ₹{Number(item.price).toLocaleString()} per item
-                    </div>
-                    <div className="text-sm font-bold text-neon-blue mt-1">
-                      ₹{(Number(item.price) * item.quantity).toLocaleString()}
-                    </div>
-                  </div>
+                ))
+              ) : (
+                <div className="p-6 text-center">
+                  <p className="text-gray-500 dark:text-gray-400">No items found for this order.</p>
                 </div>
-              ))}
+              )}
             </div>
             
             {/* Order Summary */}

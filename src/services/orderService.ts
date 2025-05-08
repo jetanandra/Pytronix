@@ -1,297 +1,252 @@
 import { supabase } from '../lib/supabaseClient';
-import { Order, OrderItem } from '../types';
 import { toast } from 'react-hot-toast';
-import { createRazorpayOrder } from './paymentService';
 
-// Get all orders for admin
-export const getAllOrders = async (): Promise<Order[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('orders')
-      .select(`
+interface OrderDetails {
+  user_id: string;
+  total: number;
+  shipping_address: any;
+  payment_details: any;
+}
+
+interface RazorpayOrder {
+  id: string;
+  entity: string;
+  amount: number;
+  amount_paid: number;
+  amount_due: number;
+  currency: string;
+  receipt: string;
+  status: string;
+  created_at: number;
+}
+
+/**
+ * Get all orders for the current user
+ */
+export const getUserOrders = async () => {
+  const { data, error } = await supabase
+    .from('orders')
+    .select(`
+      *,
+      order_items (
         *,
-        items:order_items(
-          *,
-          product:products(*)
+        product: product_id (
+          id,
+          name,
+          price,
+          discount_price,
+          image
         )
-      `)
-      .order('created_at', { ascending: false });
-      
-    if (error) throw error;
-    return data || [];
-  } catch (error) {
-    console.error('Error fetching all orders:', error);
-    return [];
+      )
+    `)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching orders:', error);
+    throw error;
   }
+
+  return data || [];
 };
 
-// Get user orders
-export const getUserOrders = async (): Promise<Order[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('orders')
-      .select(`
+/**
+ * Get a specific order by ID
+ */
+export const getOrderById = async (id: string) => {
+  const { data, error } = await supabase
+    .from('orders')
+    .select(`
+      *,
+      order_items (
         *,
-        items:order_items(
-          *,
-          product:products(*)
+        product: product_id (
+          id,
+          name,
+          price,
+          discount_price,
+          image
         )
-      `)
-      .order('created_at', { ascending: false });
-      
-    if (error) throw error;
-    return data || [];
-  } catch (error) {
-    console.error('Error fetching user orders:', error);
-    return [];
+      )
+    `)
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    console.error(`Error fetching order ${id}:`, error);
+    throw error;
   }
+
+  return data;
 };
 
-// Get order details by ID
-export const getOrderById = async (id: string): Promise<Order | null> => {
+/**
+ * Create a Razorpay order
+ */
+export const createRazorpayOrder = async (orderId: string, amount: number): Promise<RazorpayOrder> => {
   try {
-    const { data, error } = await supabase
+    const { data: { session } } = await supabase.auth.getSession();
+
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/razorpay-create-order`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session?.access_token}`
+      },
+      body: JSON.stringify({
+        orderId,
+        amount: Math.round(amount * 100) // Razorpay amount in paise
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to create Razorpay order: ${errorText}`);
+    }
+
+    const data = await response.json();
+    
+    // Update the order with Razorpay order ID
+    await supabase
       .from('orders')
-      .select(`
-        *,
-        items:order_items(
-          *,
-          product:products(*)
-        )
-      `)
-      .eq('id', id)
-      .single();
-      
-    if (error) throw error;
+      .update({ razorpay_order_id: data.id })
+      .eq('id', orderId);
+
     return data;
   } catch (error) {
-    console.error('Error fetching order:', error);
-    return null;
+    console.error('Error creating Razorpay order:', error);
+    toast.error('Failed to create payment order');
+    throw error;
   }
 };
 
-// Create a new order
-export const createOrder = async (
-  shippingAddress: any, 
-  paymentDetails: any = null
-): Promise<Order | null> => {
+/**
+ * Verify Razorpay payment
+ */
+export const verifyRazorpayPayment = async (
+  orderId: string,
+  razorpayOrderId: string,
+  razorpayPaymentId: string
+) => {
   try {
-    // Get cart from localStorage
-    const cartJson = localStorage.getItem('pytronix-cart');
-    if (!cartJson) {
-      throw new Error('Cart is empty');
+    const { data: { session } } = await supabase.auth.getSession();
+
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/razorpay-verify-payment`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session?.access_token}`
+      },
+      body: JSON.stringify({
+        orderId,
+        razorpayOrderId,
+        razorpayPaymentId
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Payment verification failed: ${errorText}`);
     }
+
+    const data = await response.json();
     
-    const cart = JSON.parse(cartJson);
-    if (!cart.items || cart.items.length === 0) {
-      throw new Error('Cart is empty');
-    }
-    
-    // Begin transaction
-    const { data: order, error: orderError } = await supabase
+    // Update order with payment status and payment ID
+    await supabase
       .from('orders')
-      .insert([{
-        total: cart.total,
-        shipping_address: shippingAddress,
-        payment_details: paymentDetails
-      }])
+      .update({
+        status: 'paid',
+        razorpay_payment_id: razorpayPaymentId
+      })
+      .eq('id', orderId);
+
+    return data;
+  } catch (error) {
+    console.error('Error verifying payment:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create an order in the database
+ */
+export const createOrder = async (orderDetails: OrderDetails): Promise<{ id: string, order_id: string }> => {
+  try {
+    // Make sure user is authenticated
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error("User not authenticated");
+    }
+
+    // Make sure user_id matches the authenticated user
+    if (orderDetails.user_id !== session.user.id) {
+      orderDetails.user_id = session.user.id;
+    }
+
+    // Insert the order
+    const { data, error } = await supabase
+      .from('orders')
+      .insert([orderDetails])
       .select()
       .single();
-      
-    if (orderError) throw orderError;
-    
-    // Insert order items
-    const orderItems = cart.items.map((item: any) => ({
-      order_id: order.id,
-      product_id: item.product.id,
-      quantity: item.quantity,
-      price: item.product.discount_price || item.product.price
-    }));
-    
-    const { error: itemsError } = await supabase
-      .from('order_items')
-      .insert(orderItems);
-      
-    if (itemsError) throw itemsError;
-    
-    // If using Razorpay, create a Razorpay order
-    if (paymentDetails.method === 'razorpay') {
-      const razorpayOrder = await createRazorpayOrder(cart.total, order.id);
-      
-      if (!razorpayOrder) {
-        throw new Error('Failed to create Razorpay order');
-      }
-      
-      // Update the order with Razorpay details
-      const { error: updateError } = await supabase
-        .from('orders')
-        .update({
-          payment_details: {
-            ...paymentDetails,
-            razorpay_order_id: razorpayOrder.id
-          },
-          razorpay_order_id: razorpayOrder.id
-        })
-        .eq('id', order.id);
-        
-      if (updateError) {
-        console.error('Error updating order with Razorpay details:', updateError);
-      }
-      
-      // Return the order with Razorpay details
-      return {
-        ...order,
-        payment_details: {
-          ...paymentDetails,
-          razorpay_order_id: razorpayOrder.id,
-          razorpay_key: razorpayOrder.key
-        }
-      };
+
+    if (error) {
+      console.error('Error creating order:', error);
+      throw new Error('Failed to create order');
     }
+
+    // Generate a readable order ID (use first 8 chars of UUID)
+    const order_id = data.id.substring(0, 8).toUpperCase();
     
-    // For non-Razorpay orders, clear cart now
-    if (paymentDetails.method === 'cod') {
-      localStorage.removeItem('pytronix-cart');
-    }
-    
-    return order;
+    return {
+      id: data.id,
+      order_id
+    };
   } catch (error) {
     console.error('Error creating order:', error);
-    toast.error('Failed to create order');
-    return null;
+    throw error;
   }
 };
 
-// Update order status
-export const updateOrderStatus = async (id: string, status: string): Promise<Order | null> => {
+/**
+ * Get order history for the current user
+ */
+export const getOrderHistory = async () => {
   try {
     const { data, error } = await supabase
       .from('orders')
-      .update({ status })
-      .eq('id', id)
-      .select()
-      .single();
+      .select('*')
+      .order('created_at', { ascending: false });
       
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error('Error updating order status:', error);
-    toast.error('Failed to update order status');
-    return null;
-  }
-};
-
-// Update order tracking information
-export const updateOrderTracking = async (
-  id: string, 
-  trackingInfo: { 
-    tracking_id: string;
-    tracking_url?: string;
-    shipping_carrier?: string;
-  }
-): Promise<Order | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('orders')
-      .update(trackingInfo)
-      .eq('id', id)
-      .select()
-      .single();
-      
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error('Error updating tracking information:', error);
-    toast.error('Failed to update tracking information');
-    return null;
-  }
-};
-
-// Cancel an order
-export const cancelOrder = async (id: string): Promise<boolean> => {
-  try {
-    // First check if order is in a status that can be cancelled
-    const { data: order, error: getError } = await supabase
-      .from('orders')
-      .select('status')
-      .eq('id', id)
-      .single();
-      
-    if (getError) throw getError;
-    
-    // Only allow cancellation for pending or processing orders
-    if (order.status !== 'pending' && order.status !== 'processing') {
-      toast.error('This order cannot be cancelled');
-      return false;
+    if (error) {
+      console.error('Error fetching order history:', error);
+      throw error;
     }
     
-    const { error } = await supabase
-      .from('orders')
-      .update({ status: 'cancelled' })
-      .eq('id', id);
-      
-    if (error) throw error;
-    return true;
+    return data || [];
   } catch (error) {
-    console.error('Error cancelling order:', error);
-    toast.error('Failed to cancel order');
-    return false;
+    console.error('Error in getOrderHistory:', error);
+    throw error;
   }
 };
 
-// Delete an order (admin only, or for testing)
-export const deleteOrder = async (id: string): Promise<boolean> => {
+/**
+ * Update order status
+ */
+export const updateOrderStatus = async (orderId: string, status: string) => {
   try {
-    // First delete related order items
-    const { error: itemsError } = await supabase
-      .from('order_items')
-      .delete()
-      .eq('order_id', id);
-      
-    if (itemsError) throw itemsError;
-    
-    // Then delete the order
     const { error } = await supabase
       .from('orders')
-      .delete()
-      .eq('id', id);
+      .update({ status })
+      .eq('id', orderId);
       
-    if (error) throw error;
+    if (error) {
+      console.error('Error updating order status:', error);
+      throw error;
+    }
+    
     return true;
   } catch (error) {
-    console.error('Error deleting order:', error);
-    toast.error('Failed to delete order');
-    return false;
-  }
-};
-
-// Get order status counts for dashboard
-export const getOrderStatusCounts = async (): Promise<Record<string, number>> => {
-  try {
-    const { data, error } = await supabase
-      .from('orders')
-      .select('status');
-      
-    if (error) throw error;
-    
-    // Count occurrences of each status
-    const counts: Record<string, number> = {
-      pending: 0,
-      processing: 0, 
-      shipped: 0,
-      delivered: 0,
-      cancelled: 0
-    };
-    
-    data.forEach(order => {
-      if (counts[order.status] !== undefined) {
-        counts[order.status]++;
-      }
-    });
-    
-    return counts;
-  } catch (error) {
-    console.error('Error getting order status counts:', error);
-    return { pending: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0 };
+    console.error('Error in updateOrderStatus:', error);
+    throw error;
   }
 };

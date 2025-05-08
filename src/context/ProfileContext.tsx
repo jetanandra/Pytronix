@@ -70,15 +70,19 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Set up real-time subscription for wishlist
   useEffect(() => {
-    if (!user) return;
-
-    const subscription = subscribeToWishlistChanges((payload) => {
-      // Refresh wishlist data when changes occur
-      refreshWishlist();
-    });
+    let subscription: any = null;
+    
+    if (user) {
+      subscription = subscribeToWishlistChanges((payload) => {
+        // Refresh wishlist data when changes occur
+        refreshWishlist();
+      });
+    }
 
     return () => {
-      subscription.unsubscribe();
+      if (subscription) {
+        subscription.unsubscribe();
+      }
     };
   }, [user]);
 
@@ -89,6 +93,11 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Profile operations
   const updateUserProfile = async (data: Partial<Profile>) => {
+    if (!user) {
+      toast.error('You must be logged in to update your profile.');
+      return;
+    }
+    
     try {
       setLoading(true);
       const updatedProfile = await updateProfile(data);
@@ -105,6 +114,11 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Address operations
   const addUserAddress = async (address: Omit<Address, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+    if (!user) {
+      toast.error('You must be logged in to add an address.');
+      return;
+    }
+    
     try {
       setLoading(true);
       await addAddress(address);
@@ -122,6 +136,11 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const updateUserAddress = async (id: string, address: Partial<Address>) => {
+    if (!user) {
+      toast.error('You must be logged in to update an address.');
+      return;
+    }
+    
     try {
       setLoading(true);
       await updateAddress(id, address);
@@ -140,6 +159,11 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const deleteUserAddress = async (id: string) => {
+    if (!user) {
+      toast.error('You must be logged in to delete an address.');
+      return;
+    }
+    
     try {
       setLoading(true);
       await deleteAddress(id);
@@ -157,6 +181,8 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Wishlist operations
   const refreshWishlist = async () => {
+    if (!user) return;
+    
     try {
       const updatedWishlist = await getWishlist();
       setWishlist(updatedWishlist);
@@ -166,6 +192,11 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const addProductToWishlist = async (productId: string, priority = 0, notes = '') => {
+    if (!user) {
+      toast.error('You must be logged in to add to wishlist.');
+      return;
+    }
+    
     try {
       setLoading(true);
       await addToWishlist(productId, priority, notes);
@@ -181,6 +212,11 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const removeProductFromWishlist = async (productId: string) => {
+    if (!user) {
+      toast.error('You must be logged in to remove from wishlist.');
+      return;
+    }
+    
     try {
       setLoading(true);
       await removeFromWishlist(productId);
@@ -200,6 +236,11 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
     productId: string, 
     updates: { priority?: number, notes?: string }
   ) => {
+    if (!user) {
+      toast.error('You must be logged in to update wishlist items.');
+      return;
+    }
+    
     try {
       setLoading(true);
       await updateWishlistItem(productId, updates);
@@ -221,6 +262,11 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // User preferences operations
   const updateUserPrefs = async (prefs: Partial<UserPreferences>) => {
+    if (!user) {
+      toast.error('You must be logged in to update preferences.');
+      return;
+    }
+    
     try {
       setLoading(true);
       const updatedPreferences = await updateUserPreferences(prefs);

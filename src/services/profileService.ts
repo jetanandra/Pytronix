@@ -422,6 +422,7 @@ export const getUserProfileData = async () => {
     
     if (userError) {
       console.error('Error getting user:', userError);
+      // Return empty data instead of throwing an error when there's no session
       return {
         profile: null,
         addresses: [],
@@ -440,19 +441,30 @@ export const getUserProfileData = async () => {
       };
     }
     
-    const [profile, addresses, wishlist, preferences] = await Promise.all([
-      getProfile(),
-      getAddresses(),
-      getWishlist(),
-      getUserPreferences()
-    ]);
+    // Only try to fetch profile data if we have a valid user
+    try {
+      const [profile, addresses, wishlist, preferences] = await Promise.all([
+        getProfile(),
+        getAddresses(),
+        getWishlist(),
+        getUserPreferences()
+      ]);
 
-    return {
-      profile,
-      addresses,
-      wishlist,
-      preferences
-    };
+      return {
+        profile,
+        addresses,
+        wishlist,
+        preferences
+      };
+    } catch (error) {
+      console.error('Error fetching profile data:', error);
+      return {
+        profile: null,
+        addresses: [],
+        wishlist: [],
+        preferences: null
+      };
+    }
   } catch (error) {
     console.error('Error in getUserProfileData:', error);
     return {

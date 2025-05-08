@@ -33,11 +33,11 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
         const loaded = await loadRazorpayScript();
         setScriptLoaded(loaded);
         if (!loaded) {
-          setError("Failed to load Razorpay script. Please check your internet connection.");
+          setError("Failed to load payment gateway. Please refresh the page.");
         }
       } catch (error) {
         console.error('Error loading Razorpay script:', error);
-        setError("Failed to load payment gateway. Please try again later.");
+        setError("Failed to load payment gateway");
         toast.error('Failed to load payment gateway');
       } finally {
         setLoading(false);
@@ -54,33 +54,30 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
   }, [scriptLoaded, order]);
   
   const openRazorpayCheckout = async () => {
-    if (!order || !order.payment_details?.razorpay_order_id) {
-      setError("Payment information is missing");
+    if (!order || !order.payment_details?.razorpay_order_id || !order.payment_details?.razorpay_key) {
+      setError("Payment information missing");
       toast.error('Payment information missing');
       return;
     }
     
     if (!window.Razorpay) {
-      setError("Payment gateway not available. Please refresh the page and try again.");
+      setError("Payment gateway not available");
       toast.error('Payment gateway not available');
       return;
     }
     
-    // Get the current session for authentication
+    // Check for active session
     const { data } = await supabase.auth.getSession();
     if (!data.session) {
-      setError("Authentication session has expired. Please log in again.");
-      toast.error('Authentication error. Please log in again.');
+      setError("Your session has expired. Please log in again.");
+      toast.error('Session expired, please log in again');
       if (onCancel) onCancel();
       return;
     }
     
-    // Get Razorpay key ID from environment variable
-    const keyId = order.payment_details.razorpay_key || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_89CCL7nHE71FCf';
-    
     // Initialize Razorpay checkout
     const options = {
-      key: keyId,
+      key: order.payment_details.razorpay_key,
       amount: Number(order.total) * 100, // convert to paisa
       currency: 'INR',
       name: 'Pytronix Electronics',
@@ -91,25 +88,10 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
         try {
           setLoading(true);
           
-          // Get fresh session token
-          const { data: sessionData } = await supabase.auth.getSession();
-          const accessToken = sessionData.session?.access_token;
-          
-          if (!accessToken) {
-            throw new Error('Authentication session has expired');
-          }
-          
-          console.log("Verifying payment with IDs:", {
-            orderId: order.id,
-            razorpayOrderId: order.payment_details.razorpay_order_id,
-            razorpayPaymentId: response.razorpay_payment_id
-          });
-          
+          // Payment verification using our simplified approach
           const success = await verifyRazorpayPayment(
-            order.id,
-            order.payment_details.razorpay_order_id,
             response.razorpay_payment_id,
-            accessToken
+            order.id
           );
           
           if (success) {
@@ -126,7 +108,7 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
             // Navigate to order details page
             navigate(`/orders/${order.id}`);
           } else {
-            setError('Payment verification failed. Please contact customer support.');
+            setError('Payment verification failed');
             toast.error('Payment verification failed');
             if (onCancel) {
               onCancel();
@@ -134,9 +116,9 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
           }
         } catch (error) {
           console.error('Error handling payment:', error);
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          setError(`Payment processing error: ${errorMessage}`);
-          toast.error('Payment processing error');
+          const errorMessage = error instanceof Error ? error.message : 'Payment processing error';
+          setError(errorMessage);
+          toast.error(errorMessage);
           
           if (onCancel) {
             onCancel();
@@ -158,7 +140,6 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
       },
       modal: {
         ondismiss: function() {
-          setError("Payment was cancelled.");
           toast.error('Payment cancelled');
           
           if (onCancel) {
@@ -168,21 +149,20 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
       },
     };
     
-    // Create Razorpay instance
     try {
       const rzp = new window.Razorpay(options);
       rzp.on('payment.failed', function (response: any) {
         const errorMsg = response.error.description || "Payment failed";
+        setError(errorMsg);
         toast.error(`Payment failed: ${errorMsg}`);
-        setError(`Payment failed: ${errorMsg}`);
         if (onCancel) {
           onCancel();
         }
       });
       rzp.open();
-    } catch (err) {
-      console.error('Error opening Razorpay:', err);
-      setError("Failed to open payment gateway. Please try again later.");
+    } catch (e) {
+      console.error('Error opening Razorpay:', e);
+      setError('Failed to open payment gateway');
       toast.error('Failed to open payment gateway');
       if (onCancel) {
         onCancel();
@@ -198,18 +178,30 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
     );
   }
   
-  if (!scriptLoaded || error) {
+  if (!scriptLoaded) {
     return (
       <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
         <p className="text-red-600 dark:text-red-400 text-sm">
-          {error || "Failed to load payment gateway. Please try again or contact support."}
+          Failed to load payment gateway. Please try again or contact support.
         </p>
-        <button 
-          onClick={() => window.location.reload()}
-          className="mt-4 btn-primary text-sm"
-        >
-          Refresh Page
-        </button>
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
+        <p className="text-red-600 dark:text-red-400 text-sm">
+          {error}
+        </p>
+        <div className="mt-4 flex justify-end">
+          <button
+            onClick={() => window.location.reload()}
+            className="btn-primary text-sm"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }

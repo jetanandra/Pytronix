@@ -48,9 +48,26 @@ Deno.serve(async (req) => {
     }
 
     // Create Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error("Missing Supabase environment variables");
+      return new Response(
+        JSON.stringify({ error: "Server configuration error" }),
+        {
+          status: 500,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        }
+      );
+    }
+
     const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") || "",
-      Deno.env.get("SUPABASE_ANON_KEY") || "",
+      supabaseUrl,
+      supabaseAnonKey,
       {
         global: {
           headers: {
@@ -59,6 +76,9 @@ Deno.serve(async (req) => {
         },
       }
     );
+
+    // Log the request for debugging
+    console.log("Payment verification request received");
 
     // Get user from session
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -79,7 +99,7 @@ Deno.serve(async (req) => {
     if (!user) {
       console.error("No user found in the session");
       return new Response(
-        JSON.stringify({ error: "User not found in session" }),
+        JSON.stringify({ error: "Authentication failed", details: "Auth session missing!" }),
         {
           status: 401,
           headers: {

@@ -24,59 +24,102 @@ export const loadRazorpayScript = (): Promise<boolean> => {
 };
 
 /**
- * Verifies a Razorpay payment
+ * Creates a Razorpay order
  */
-export const verifyRazorpayPayment = async (
-  orderId: string,
-  razorpayOrderId: string,
-  razorpayPaymentId: string,
-  accessToken?: string
-): Promise<boolean> => {
+export const createRazorpayOrder = async (
+  amount: number, 
+  orderId: string
+): Promise<{
+  id: string;
+  key: string;
+  amount: number;
+  currency: string;
+  notes: Record<string, string>;
+} | null> => {
   try {
-    // Validate inputs
-    if (!orderId || !razorpayOrderId || !razorpayPaymentId) {
-      console.error('Missing required payment parameters', { orderId, razorpayOrderId, razorpayPaymentId });
-      return false;
-    }
-
-    // If no access token is provided, try to get it from the current session
-    let token = accessToken;
-    if (!token) {
-      const { data } = await supabase.auth.getSession();
-      token = data.session?.access_token;
+    // Get auth session
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      throw new Error('You must be logged in to create an order');
     }
     
-    if (!token) {
-      console.error('No authentication token available');
-      throw new Error('Authentication required. Please log in again.');
-    }
-    
-    console.log('Verifying payment with order ID:', orderId);
-    
+    // Call the Razorpay order Edge Function
     const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/razorpay-verify-payment`,
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/razorpay-create-order`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
-          orderId,
-          razorpayOrderId,
-          razorpayPaymentId,
+          amount: amount, // in rupees
+          orderId: orderId
         }),
       }
     );
-
+    
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Payment verification API error:', errorText);
-      throw new Error(`Payment verification failed: ${errorText}`);
+      const errorResponse = await response.json();
+      throw new Error(errorResponse.error || 'Failed to create Razorpay order');
     }
+    
+    const data = await response.json();
+    
+    return {
+      id: data.id,
+      key: data.key || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_89CCL7nHE71FCf',
+      amount: data.amount,
+      currency: data.currency || 'INR',
+      notes: data.notes || {}
+    };
+    
+  } catch (error) {
+    console.error('Error creating Razorpay order:', error);
+    return null;
+  }
+};
 
-    const result = await response.json();
-    return result.success === true;
+/**
+ * Verifies Razorpay payment status
+ */
+export const verifyRazorpayPayment = async (
+  paymentId: string,
+  orderId: string
+): Promise<boolean> => {
+  try {
+    // Get fresh session for authentication
+    const { data } = await supabase.auth.getSession();
+    const session = data.session;
+    
+    if (!session || !session.access_token) {
+      console.error('No active session found for payment verification');
+      throw new Error('Authentication session has expired. Please login again.');
+    }
+    
+    // Update order payment details in Supabase
+    const { data: orderData, error } = await supabase
+      .from('orders')
+      .update({
+        payment_details: {
+          status: 'paid',
+          method: 'razorpay',
+          razorpay_payment_id: paymentId,
+          payment_timestamp: new Date().toISOString(),
+        },
+        status: 'processing', // Update order status to processing once payment is confirmed
+        razorpay_payment_id: paymentId
+      })
+      .eq('id', orderId)
+      .select();
+    
+    if (error) {
+      console.error('Error updating order payment details:', error);
+      return false;
+    }
+    
+    return true;
   } catch (error) {
     console.error('Error verifying Razorpay payment:', error);
     throw error;

@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import LoaderSpinner from '../ui/LoaderSpinner';
 import { useAuth } from '../../context/AuthContext';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../lib/supabaseClient';
 
 interface RazorpayCheckoutProps {
   order: Order;
@@ -24,10 +24,6 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
   const [scriptLoaded, setScriptLoaded] = useState<boolean>(false);
   const navigate = useNavigate();
   const { user } = useAuth();
-  const supabase = createClient(
-    import.meta.env.VITE_SUPABASE_URL || '',
-    import.meta.env.VITE_SUPABASE_ANON_KEY || ''
-  );
   const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {

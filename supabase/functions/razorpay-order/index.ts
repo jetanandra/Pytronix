@@ -9,8 +9,8 @@ const corsHeaders = {
 
 // Initialize Razorpay with your key_id and key_secret
 const razorpay = new Razorpay({
-  key_id: Deno.env.get("RAZORPAY_KEY_ID") || "rzp_test_YoUR1234TEst5678", // Replace with your actual key in env
-  key_secret: Deno.env.get("RAZORPAY_KEY_SECRET") || "youRSEcreTKey12345", // Replace with your actual secret in env
+  key_id: Deno.env.get("RAZORPAY_KEY_ID") || "rzp_test_89CCL7nHE71FCf", 
+  key_secret: Deno.env.get("RAZORPAY_KEY_SECRET") || "w8OhmDRlhg5iaf7Bg1bgQVUX", 
 });
 
 Deno.serve(async (req) => {

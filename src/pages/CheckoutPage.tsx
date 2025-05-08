@@ -7,7 +7,8 @@ import { Phone, MapPin, CreditCard, Truck, Check, AlertTriangle } from 'lucide-r
 import LoaderSpinner from '../components/ui/LoaderSpinner';
 import { toast } from 'react-hot-toast';
 import { createOrder, createRazorpayOrder, verifyRazorpayPayment } from '../services/orderService';
-import { Address } from '../types';
+import { Address, Order } from '../types';
+import RazorpayCheckout from '../components/payment/RazorpayCheckout';
 
 interface FormState {
   name: string;
@@ -37,6 +38,7 @@ const CheckoutPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [orderComplete, setOrderComplete] = useState<boolean>(false);
   const [orderData, setOrderData] = useState<OrderData | null>(null);
+  const [razorpayOrder, setRazorpayOrder] = useState<Order | null>(null);
   const navigate = useNavigate();
   
   // If cart is empty, redirect to cart page
@@ -107,6 +109,18 @@ const CheckoutPage: React.FC = () => {
     return true;
   };
   
+  const handleRazorpaySuccess = () => {
+    clearCart();
+    setOrderComplete(true);
+    toast.success('Payment successful! Your order has been placed.');
+  };
+  
+  const handleRazorpayCancel = () => {
+    setRazorpayOrder(null);
+    setLoading(false);
+    toast.error('Payment was cancelled. Please try again.');
+  };
+  
   const handlePlaceOrder = async () => {
     if (!validateForm()) return;
     
@@ -148,43 +162,21 @@ const CheckoutPage: React.FC = () => {
               throw new Error('Failed to create Razorpay order');
             }
             
-            const options = {
-              key: 'rzp_test_B7Qf9GvOWR6SAc', // Replace with your Razorpay key ID
-              amount: cart.total * 100, // Razorpay amount is in paisa (1/100 of INR)
-              currency: 'INR',
-              name: 'Pytronix',
-              description: 'Payment for order #' + id.substring(0, 8),
-              order_id: razorpayData.id,
-              handler: async function(response: any) {
-                try {
-                  // Verify payment
-                  await verifyRazorpayPayment(
-                    id,
-                    response.razorpay_order_id,
-                    response.razorpay_payment_id
-                  );
-                  
-                  // Clear cart and complete order
-                  clearCart();
-                  setOrderComplete(true);
-                  toast.success('Payment successful! Your order has been placed.');
-                } catch (error) {
-                  console.error('Payment verification error:', error);
-                  toast.error('Payment verification failed');
-                }
+            // Set the Razorpay order with needed information for the component
+            setRazorpayOrder({
+              id: id,
+              total: cart.total,
+              payment_details: {
+                razorpay_order_id: razorpayData.id,
+                razorpay_key: 'rzp_test_B7Qf9GvOWR6SAc' // Replace with your Razorpay key ID
               },
-              prefill: {
-                name: formState.name,
-                email: formState.email,
-                contact: formState.phone
-              },
-              theme: {
-                color: '#3b82f6'
+              shipping_address: {
+                full_name: formState.name,
+                phone: formState.phone,
+                ...selectedAddress
               }
-            };
+            } as Order);
             
-            const razorpay = new (window as any).Razorpay(options);
-            razorpay.open();
           } catch (error) {
             console.error('Razorpay error:', error);
             toast.error('Payment gateway error. Please try again.');
@@ -203,7 +195,9 @@ const CheckoutPage: React.FC = () => {
       console.error('Error placing order:', error);
       toast.error('Error placing order: ' + (error as any)?.message || 'Failed to place order');
     } finally {
-      setLoading(false);
+      if (formState.paymentMethod !== 'razorpay') {
+        setLoading(false);
+      }
     }
   };
   
@@ -252,6 +246,24 @@ const CheckoutPage: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Render Razorpay checkout if order is created
+  if (razorpayOrder) {
+    return (
+      <div className="min-h-screen pt-32 pb-12 flex items-center justify-center">
+        <div className="bg-white dark:bg-light-navy rounded-lg shadow-lg p-8 max-w-lg w-full">
+          <h2 className="text-xl font-semibold text-center mb-6">
+            Processing Payment
+          </h2>
+          <RazorpayCheckout 
+            order={razorpayOrder} 
+            onSuccess={handleRazorpaySuccess} 
+            onCancel={handleRazorpayCancel} 
+          />
         </div>
       </div>
     );

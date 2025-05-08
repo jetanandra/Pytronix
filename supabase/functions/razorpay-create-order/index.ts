@@ -99,6 +99,8 @@ Deno.serve(async (req) => {
       key_secret: Deno.env.get("RAZORPAY_KEY_SECRET") || "w8OhmDRlhg5iaf7Bg1bgQVUX",
     });
 
+    console.log("Creating Razorpay order for amount:", amount);
+
     // Create Razorpay order
     const order = await razorpay.orders.create({
       amount: Math.round(amount * 100), // Convert to paise
@@ -110,6 +112,8 @@ Deno.serve(async (req) => {
       },
     });
 
+    console.log("Razorpay order created:", order.id);
+
     // Update the Supabase order with Razorpay order ID
     const { error: updateError } = await supabase
       .from("orders")
@@ -117,7 +121,8 @@ Deno.serve(async (req) => {
         razorpay_order_id: order.id,
         payment_provider: "razorpay",
         payment_details: {
-          ...order,
+          razorpay_order_id: order.id,
+          razorpay_key: Deno.env.get("RAZORPAY_KEY_ID") || "rzp_test_89CCL7nHE71FCf",
           status: "created"
         }
       })
@@ -130,10 +135,12 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        id: order.id,
-        amount: order.amount,
-        currency: order.currency,
-        notes: order.notes
+        data: {
+          id: order.id,
+          amount: order.amount,
+          currency: order.currency,
+          notes: order.notes
+        }
       }),
       {
         status: 200,

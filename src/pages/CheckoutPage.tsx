@@ -6,7 +6,7 @@ import { useProfile } from '../context/ProfileContext';
 import { Phone, MapPin, CreditCard, Truck, Check, AlertTriangle } from 'lucide-react';
 import LoaderSpinner from '../components/ui/LoaderSpinner';
 import { toast } from 'react-hot-toast';
-import { createOrder, createRazorpayOrder, verifyRazorpayPayment } from '../services/orderService';
+import { createOrder, createRazorpayOrder } from '../services/orderService';
 import { Address, Order } from '../types';
 import RazorpayCheckout from '../components/payment/RazorpayCheckout';
 
@@ -39,6 +39,7 @@ const CheckoutPage: React.FC = () => {
   const [orderComplete, setOrderComplete] = useState<boolean>(false);
   const [orderData, setOrderData] = useState<OrderData | null>(null);
   const [razorpayOrder, setRazorpayOrder] = useState<Order | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
   const navigate = useNavigate();
   
   // If cart is empty, redirect to cart page
@@ -52,7 +53,8 @@ const CheckoutPage: React.FC = () => {
     if (defaultAddress && !formState.selectedAddressId) {
       setFormState(prev => ({
         ...prev,
-        selectedAddressId: defaultAddress.id
+        selectedAddressId: defaultAddress.id,
+        name: defaultAddress.street.split(',')[0] || '', // Use first line of address as name if available
       }));
     }
   }, [cart.items, addresses, navigate, orderComplete, formState.selectedAddressId]);
@@ -87,6 +89,8 @@ const CheckoutPage: React.FC = () => {
       ...prev,
       paymentMethod: method
     }));
+    // Clear any previous payment errors when changing payment method
+    setPaymentError(null);
   };
   
   const validateForm = (): boolean => {
@@ -118,6 +122,7 @@ const CheckoutPage: React.FC = () => {
   const handleRazorpayCancel = () => {
     setRazorpayOrder(null);
     setLoading(false);
+    setPaymentError('Payment was cancelled. Please try again.');
     toast.error('Payment was cancelled. Please try again.');
   };
   
@@ -132,21 +137,27 @@ const CheckoutPage: React.FC = () => {
     
     try {
       setLoading(true);
+      setPaymentError(null);
       
       // Order details for database
       const orderDetails = {
-        user_id: user.id, // Ensure user_id is set from authenticated user
+        user_id: user.id,
         total: cart.total,
-        shipping_address: selectedAddress,
+        shipping_address: {
+          ...selectedAddress,
+          full_name: formState.name,
+          phone: formState.phone
+        },
         payment_details: {
           method: formState.paymentMethod,
           status: 'pending'
-        }
+        },
+        status: 'pending'
       };
       
       // Create order in database
       try {
-        const { id, order_id } = await createOrder(orderDetails);
+        const { id } = await createOrder(orderDetails);
         setOrderData({
           orderId: id,
           total: cart.total
@@ -168,7 +179,7 @@ const CheckoutPage: React.FC = () => {
               total: cart.total,
               payment_details: {
                 razorpay_order_id: razorpayData.id,
-                razorpay_key: 'rzp_test_B7Qf9GvOWR6SAc' // Replace with your Razorpay key ID
+                razorpay_key: razorpayData.key || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_89CCL7nHE71FCf'
               },
               shipping_address: {
                 full_name: formState.name,
@@ -179,6 +190,7 @@ const CheckoutPage: React.FC = () => {
             
           } catch (error) {
             console.error('Razorpay error:', error);
+            setPaymentError('Payment gateway error. Please try again or choose a different payment method.');
             toast.error('Payment gateway error. Please try again.');
           }
         } else {
@@ -264,6 +276,30 @@ const CheckoutPage: React.FC = () => {
             onSuccess={handleRazorpaySuccess} 
             onCancel={handleRazorpayCancel} 
           />
+          {paymentError && (
+            <div className="mt-4 bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
+              <p className="text-red-600 dark:text-red-400 text-sm">
+                {paymentError}
+              </p>
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => setRazorpayOrder(null)}
+                  className="btn-secondary mr-2"
+                >
+                  Try Again
+                </button>
+                <button
+                  onClick={() => {
+                    setRazorpayOrder(null);
+                    setFormState(prev => ({...prev, paymentMethod: 'cod'}));
+                  }}
+                  className="btn-primary"
+                >
+                  Pay on Delivery Instead
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -482,6 +518,17 @@ const CheckoutPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
+
+                {paymentError && (
+                  <div className="mt-4 bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
+                    <div className="flex items-start">
+                      <AlertTriangle className="w-5 h-5 text-red-500 mr-2 flex-shrink-0" />
+                      <p className="text-sm text-red-600 dark:text-red-400">
+                        {paymentError}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -91,8 +91,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // In a real application, you would verify the payment signature
-    // with Razorpay, but for simplicity, we'll just update the order status
+    console.log(`Verifying payment: orderId=${orderId}, razorpayOrderId=${razorpayOrderId}, razorpayPaymentId=${razorpayPaymentId}`);
 
     // Get the order to verify user ownership
     const { data: order, error: getOrderError } = await supabase
@@ -102,6 +101,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (getOrderError) {
+      console.error("Error fetching order:", getOrderError);
       return new Response(
         JSON.stringify({ error: "Failed to get order", details: getOrderError.message }),
         {
@@ -157,6 +157,7 @@ Deno.serve(async (req) => {
       .eq("id", orderId);
 
     if (updateError) {
+      console.error("Error updating order:", updateError);
       return new Response(
         JSON.stringify({ error: "Failed to update order", details: updateError.message }),
         {

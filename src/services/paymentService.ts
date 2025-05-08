@@ -2,8 +2,8 @@ import { supabase } from '../lib/supabaseClient';
 
 // Create a Razorpay order
 export const createRazorpayOrder = async (
-  amount: number, 
-  orderId: string
+  orderId: string, 
+  amount: number
 ): Promise<{
   id: string;
   key: string;
@@ -21,7 +21,7 @@ export const createRazorpayOrder = async (
     
     // Call the Razorpay order Edge Function
     const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/razorpay-order`,
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/razorpay-create-order`,
       {
         method: 'POST',
         headers: {
@@ -29,13 +29,8 @@ export const createRazorpayOrder = async (
           'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
-          amount: amount, // in rupees
-          currency: 'INR',
-          receipt: `receipt_order_${orderId.substring(0, 8)}`,
-          notes: {
-            order_reference: orderId
-          },
-          orderId: orderId
+          orderId,
+          amount, // in rupees
         }),
       }
     );
@@ -49,7 +44,7 @@ export const createRazorpayOrder = async (
     
     return {
       id: data.data.id,
-      key: data.key_id,
+      key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_89CCL7nHE71FCf',
       amount: data.data.amount,
       currency: data.data.currency,
       notes: data.data.notes
@@ -63,41 +58,45 @@ export const createRazorpayOrder = async (
 
 // Verify payment status
 export const verifyRazorpayPayment = async (
-  paymentId: string,
-  orderId: string
+  orderId: string,
+  razorpayOrderId: string,
+  razorpayPaymentId: string
 ): Promise<boolean> => {
   try {
-    // In a production app, you would verify this server-side through your webhook handler
-    // For now, we'll check if both paymentId and orderId exist
-    if (!paymentId || !orderId) {
-      return false;
+    // Get auth session
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      throw new Error('You must be logged in to verify payment');
     }
     
-    // Update order payment details in Supabase
-    const { data, error } = await supabase
-      .from('orders')
-      .update({
-        payment_details: {
-          status: 'paid',
-          method: 'razorpay',
-          razorpay_payment_id: paymentId,
-          payment_timestamp: new Date().toISOString(),
+    // Call the verify payment Edge Function
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/razorpay-verify-payment`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
-        status: 'processing', // Update order status to processing once payment is confirmed
-        razorpay_payment_id: paymentId
-      })
-      .eq('id', orderId)
-      .select();
+        body: JSON.stringify({
+          orderId,
+          razorpayOrderId,
+          razorpayPaymentId,
+        }),
+      }
+    );
     
-    if (error) {
-      console.error('Error updating order payment details:', error);
-      return false;
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Payment verification failed: ${errorText}`);
     }
     
-    return true;
+    const result = await response.json();
+    return result.success;
   } catch (error) {
     console.error('Error verifying Razorpay payment:', error);
-    return false;
+    throw error;
   }
 };
 
@@ -113,7 +112,11 @@ export const loadRazorpayScript = (): Promise<boolean> => {
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
     script.async = true;
     script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
+    script.onerror = () => {
+      console.error('Failed to load Razorpay script');
+      resolve(false);
+    };
+    
     document.body.appendChild(script);
   });
 };

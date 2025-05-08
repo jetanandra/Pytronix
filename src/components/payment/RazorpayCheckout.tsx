@@ -23,6 +23,7 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
   const [scriptLoaded, setScriptLoaded] = useState<boolean>(false);
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
     const loadScript = async () => {
@@ -30,8 +31,12 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
         setLoading(true);
         const loaded = await loadRazorpayScript();
         setScriptLoaded(loaded);
+        if (!loaded) {
+          setError("Failed to load Razorpay script. Please check your internet connection.");
+        }
       } catch (error) {
         console.error('Error loading Razorpay script:', error);
+        setError("Failed to load payment gateway. Please try again later.");
         toast.error('Failed to load payment gateway');
       } finally {
         setLoading(false);
@@ -42,25 +47,30 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
   }, []);
   
   useEffect(() => {
-    if (scriptLoaded && order && order.payment_details?.razorpay_order_id && order.payment_details?.razorpay_key) {
+    if (scriptLoaded && order && order.payment_details?.razorpay_order_id) {
       openRazorpayCheckout();
     }
   }, [scriptLoaded, order]);
   
   const openRazorpayCheckout = () => {
-    if (!order || !order.payment_details?.razorpay_order_id || !order.payment_details?.razorpay_key) {
+    if (!order || !order.payment_details?.razorpay_order_id) {
+      setError("Payment information is missing");
       toast.error('Payment information missing');
       return;
     }
     
     if (!window.Razorpay) {
+      setError("Payment gateway not available. Please refresh the page and try again.");
       toast.error('Payment gateway not available');
       return;
     }
     
+    // Get Razorpay key ID from environment variable
+    const keyId = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_89CCL7nHE71FCf';
+    
     // Initialize Razorpay checkout
     const options = {
-      key: order.payment_details.razorpay_key,
+      key: keyId,
       amount: Number(order.total) * 100, // convert to paisa
       currency: 'INR',
       name: 'Pytronix Electronics',
@@ -72,8 +82,9 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
           setLoading(true);
           
           const success = await verifyRazorpayPayment(
-            response.razorpay_payment_id,
-            order.id
+            order.id,
+            order.payment_details.razorpay_order_id,
+            response.razorpay_payment_id
           );
           
           if (success) {
@@ -91,6 +102,7 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
             navigate(`/orders/${order.id}`);
           } else {
             toast.error('Payment verification failed');
+            setError("Payment verification failed. Please contact support.");
             if (onCancel) {
               onCancel();
             }
@@ -98,6 +110,7 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
         } catch (error) {
           console.error('Error handling payment:', error);
           toast.error('Payment processing error');
+          setError("Payment processing error. Please try again or contact support.");
           
           if (onCancel) {
             onCancel();
@@ -120,6 +133,7 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
       modal: {
         ondismiss: function() {
           toast.error('Payment cancelled');
+          setError("Payment was cancelled.");
           
           if (onCancel) {
             onCancel();
@@ -128,8 +142,25 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
       },
     };
     
-    const rzp = new window.Razorpay(options);
-    rzp.open();
+    // Create Razorpay instance
+    try {
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function (response: any) {
+        toast.error(`Payment failed: ${response.error.description}`);
+        setError(`Payment failed: ${response.error.description}`);
+        if (onCancel) {
+          onCancel();
+        }
+      });
+      rzp.open();
+    } catch (err) {
+      console.error('Error opening Razorpay:', err);
+      setError("Failed to open payment gateway. Please try again later.");
+      toast.error('Failed to open payment gateway');
+      if (onCancel) {
+        onCancel();
+      }
+    }
   };
   
   if (loading) {
@@ -140,12 +171,18 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
     );
   }
   
-  if (!scriptLoaded) {
+  if (!scriptLoaded || error) {
     return (
       <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
         <p className="text-red-600 dark:text-red-400 text-sm">
-          Failed to load payment gateway. Please try again or contact support.
+          {error || "Failed to load payment gateway. Please try again or contact support."}
         </p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="mt-4 btn-primary text-sm"
+        >
+          Refresh Page
+        </button>
       </div>
     );
   }

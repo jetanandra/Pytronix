@@ -25,6 +25,9 @@ const ShippingReturnsPage = lazy(() => import('../pages/ShippingReturnsPage'));
 const WarrantyPage = lazy(() => import('../pages/WarrantyPage'));
 const ForgotPasswordPage = lazy(() => import('../pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('../pages/ResetPasswordPage'));
+const OrdersPage = lazy(() => import('../pages/OrdersPage'));
+const OrderDetailPage = lazy(() => import('../pages/OrderDetailPage'));
+const OrderDetail = lazy(() => import('../pages/admin/OrderDetail'));
 
 const AppRoutes: React.FC = () => {
   return (
@@ -52,6 +55,16 @@ const AppRoutes: React.FC = () => {
                   <ProfilePage />
                 </AuthGuard>
               } />
+              <Route path="/orders" element={
+                <AuthGuard>
+                  <OrdersPage />
+                </AuthGuard>
+              } />
+              <Route path="/orders/:id" element={
+                <AuthGuard>
+                  <OrderDetailPage />
+                </AuthGuard>
+              } />
               <Route path="/admin/*" element={
                 <AuthGuard>
                   <AdminPage />
@@ -61,6 +74,11 @@ const AppRoutes: React.FC = () => {
               <Route path="/admin/categories" element={
                 <AuthGuard>
                   <AdminCategoryPage />
+                </AuthGuard>
+              } />
+              <Route path="/admin/orders/:id" element={
+                <AuthGuard>
+                  <OrderDetail />
                 </AuthGuard>
               } />
               <Route path="/about" element={<AboutUsPage />} />

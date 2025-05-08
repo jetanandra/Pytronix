@@ -85,3 +85,33 @@ export interface ProductSpecification {
   key: string;
   value: string;
 }
+
+export interface OrderItem {
+  id: string;
+  order_id: string;
+  product_id: string;
+  quantity: number;
+  price: number;
+  product?: Product;
+}
+
+export interface Order {
+  id: string;
+  user_id: string;
+  status: OrderStatus;
+  total: number;
+  shipping_address: {
+    full_name: string;
+    street: string;
+    city: string;
+    state: string;
+    postal_code: string;
+    country: string;
+    phone?: string;
+  };
+  payment_details?: any;
+  created_at: string;
+  items?: OrderItem[];
+}
+
+export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';

@@ -3,13 +3,23 @@ import { Link } from 'react-router-dom';
 import { Package, ShoppingBag, Users, DollarSign, ArrowRight, AlertTriangle } from 'lucide-react';
 import LoaderSpinner from '../../components/ui/LoaderSpinner';
 import { getAllProducts } from '../../services/productService';
+import { getAllOrders, getOrderStatusCounts } from '../../services/orderService';
 
 const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalProducts: 0,
+    totalOrders: 0,
+    totalRevenue: 0,
     outOfStock: 0,
-    lowStock: 0
+    lowStock: 0,
+    ordersByStatus: {
+      pending: 0,
+      processing: 0, 
+      shipped: 0,
+      delivered: 0,
+      cancelled: 0
+    }
   });
   
   useEffect(() => {
@@ -17,14 +27,30 @@ const AdminDashboard = () => {
       try {
         setLoading(true);
         
-        // Fetch products
-        const products = await getAllProducts();
+        // Fetch products and orders in parallel
+        const [products, orders, orderStatusCounts] = await Promise.all([
+          getAllProducts(),
+          getAllOrders(),
+          getOrderStatusCounts()
+        ]);
+        
+        // Calculate total revenue
+        const totalRevenue = orders.reduce((sum, order) => {
+          // Only count completed/delivered orders in revenue
+          if (order.status === 'delivered') {
+            return sum + Number(order.total);
+          }
+          return sum;
+        }, 0);
         
         // Calculate stats
         setStats({
           totalProducts: products.length,
+          totalOrders: orders.length,
+          totalRevenue,
           outOfStock: products.filter(p => p.stock <= 0).length,
-          lowStock: products.filter(p => p.stock > 0 && p.stock <= 5).length
+          lowStock: products.filter(p => p.stock > 0 && p.stock <= 5).length,
+          ordersByStatus: orderStatusCounts
         });
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -68,7 +94,11 @@ const AdminDashboard = () => {
           </div>
           <div>
             <p className="text-gray-500 dark:text-gray-400 text-sm">Orders</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">0</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalOrders}</p>
+            <div className="flex space-x-2 mt-1">
+              <span className="text-xs text-yellow-500 dark:text-yellow-400">{stats.ordersByStatus.pending} pending</span>
+              <span className="text-xs text-green-500 dark:text-green-400">{stats.ordersByStatus.delivered} completed</span>
+            </div>
           </div>
         </div>
         
@@ -78,7 +108,7 @@ const AdminDashboard = () => {
           </div>
           <div>
             <p className="text-gray-500 dark:text-gray-400 text-sm">Users</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">0</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">--</p>
           </div>
         </div>
         
@@ -88,7 +118,67 @@ const AdminDashboard = () => {
           </div>
           <div>
             <p className="text-gray-500 dark:text-gray-400 text-sm">Revenue</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">₹0</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">₹{stats.totalRevenue.toLocaleString()}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">From delivered orders</p>
+          </div>
+        </div>
+      </div>
+      
+      {/* Order Status Cards */}
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Order Status Breakdown
+        </h2>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="bg-white dark:bg-light-navy rounded-lg shadow p-4 flex items-center">
+            <div className="w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/20 flex items-center justify-center mr-3">
+              <Clock className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Pending</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">{stats.ordersByStatus.pending}</p>
+            </div>
+          </div>
+          
+          <div className="bg-white dark:bg-light-navy rounded-lg shadow p-4 flex items-center">
+            <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center mr-3">
+              <Package className="w-5 h-5 text-neon-blue" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Processing</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">{stats.ordersByStatus.processing}</p>
+            </div>
+          </div>
+          
+          <div className="bg-white dark:bg-light-navy rounded-lg shadow p-4 flex items-center">
+            <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center mr-3">
+              <TruckIcon className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Shipped</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">{stats.ordersByStatus.shipped}</p>
+            </div>
+          </div>
+          
+          <div className="bg-white dark:bg-light-navy rounded-lg shadow p-4 flex items-center">
+            <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center mr-3">
+              <CheckCircle className="w-5 h-5 text-neon-green" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Delivered</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">{stats.ordersByStatus.delivered}</p>
+            </div>
+          </div>
+          
+          <div className="bg-white dark:bg-light-navy rounded-lg shadow p-4 flex items-center">
+            <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mr-3">
+              <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Cancelled</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">{stats.ordersByStatus.cancelled}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -100,6 +190,25 @@ const AdminDashboard = () => {
         </h2>
         
         <div className="space-y-4">
+          {stats.ordersByStatus.pending > 0 && (
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-500 p-4 rounded-lg">
+              <div className="flex items-start">
+                <AlertTriangle className="w-5 h-5 text-yellow-500 mr-3 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-yellow-800 dark:text-yellow-300 font-medium">
+                    Pending Orders
+                  </h3>
+                  <p className="text-sm text-yellow-700 dark:text-yellow-200 mt-1">
+                    You have {stats.ordersByStatus.pending} pending orders that require processing.
+                  </p>
+                  <Link to="/admin/orders?filter=pending" className="inline-flex items-center text-sm text-yellow-600 dark:text-yellow-300 font-medium mt-2 hover:underline">
+                    View Pending Orders <ArrowRight className="w-4 h-4 ml-1" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {stats.outOfStock > 0 && (
             <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 rounded-lg">
               <div className="flex items-start">
@@ -120,17 +229,17 @@ const AdminDashboard = () => {
           )}
           
           {stats.lowStock > 0 && (
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-500 p-4 rounded-lg">
+            <div className="bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-500 p-4 rounded-lg">
               <div className="flex items-start">
-                <AlertTriangle className="w-5 h-5 text-yellow-500 mr-3 flex-shrink-0 mt-0.5" />
+                <AlertTriangle className="w-5 h-5 text-orange-500 mr-3 flex-shrink-0 mt-0.5" />
                 <div>
-                  <h3 className="text-yellow-800 dark:text-yellow-300 font-medium">
+                  <h3 className="text-orange-800 dark:text-orange-300 font-medium">
                     Low Stock Products
                   </h3>
-                  <p className="text-sm text-yellow-700 dark:text-yellow-200 mt-1">
+                  <p className="text-sm text-orange-700 dark:text-orange-200 mt-1">
                     You have {stats.lowStock} products with low stock (5 or fewer items).
                   </p>
-                  <Link to="/admin/products" className="inline-flex items-center text-sm text-yellow-600 dark:text-yellow-300 font-medium mt-2 hover:underline">
+                  <Link to="/admin/products" className="inline-flex items-center text-sm text-orange-600 dark:text-orange-300 font-medium mt-2 hover:underline">
                     View Products <ArrowRight className="w-4 h-4 ml-1" />
                   </Link>
                 </div>
@@ -138,7 +247,7 @@ const AdminDashboard = () => {
             </div>
           )}
           
-          {stats.outOfStock === 0 && stats.lowStock === 0 && (
+          {stats.outOfStock === 0 && stats.lowStock === 0 && stats.ordersByStatus.pending === 0 && (
             <div className="bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 p-4 rounded-lg">
               <div className="flex">
                 <div className="flex-shrink-0">
@@ -151,7 +260,7 @@ const AdminDashboard = () => {
                     All Systems Normal
                   </h3>
                   <p className="text-sm text-green-700 dark:text-green-200 mt-1">
-                    All products are in stock and inventory levels are healthy.
+                    All products are in stock and there are no pending orders.
                   </p>
                 </div>
               </div>

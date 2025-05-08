@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import LoaderSpinner from '../ui/LoaderSpinner';
 import { useAuth } from '../../context/AuthContext';
+import { useSupabaseClient } from '@supabase/auth-helpers-react';
 
 interface RazorpayCheckoutProps {
   order: Order;
@@ -23,6 +24,7 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
   const [scriptLoaded, setScriptLoaded] = useState<boolean>(false);
   const navigate = useNavigate();
   const { user } = useAuth();
+  const supabase = useSupabaseClient();
   const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
@@ -81,10 +83,14 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
         try {
           setLoading(true);
           
+          // Get the current session's access token for authentication
+          const { data: { session } } = await supabase.auth.getSession();
+          
           const success = await verifyRazorpayPayment(
             order.id,
             order.payment_details.razorpay_order_id,
-            response.razorpay_payment_id
+            response.razorpay_payment_id,
+            session?.access_token
           );
           
           if (success) {

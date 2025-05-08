@@ -1,83 +1,86 @@
-import { supabase } from '../lib/supabaseClient';
+import { supabaseClient } from '../lib/supabaseClient';
 
-// Create a Razorpay order
-export const createRazorpayOrder = async (
-  orderId: string, 
-  amount: number
-): Promise<{
-  id: string;
-  key: string;
-  amount: number;
-  currency: string;
-  notes: Record<string, string>;
-} | null> => {
-  try {
-    // Get auth session
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      throw new Error('You must be logged in to create an order');
+/**
+ * Loads the Razorpay script
+ */
+export const loadRazorpayScript = (): Promise<boolean> => {
+  return new Promise((resolve) => {
+    // Check if Razorpay is already loaded
+    if (window.Razorpay) {
+      resolve(true);
+      return;
     }
+
+    // Create script element
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
     
-    // Call the Razorpay order Edge Function
+    // Add script to document
+    document.body.appendChild(script);
+  });
+};
+
+/**
+ * Creates a new Razorpay order
+ */
+export const createRazorpayOrder = async (orderId: string): Promise<any> => {
+  try {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/razorpay-create-order`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${session?.access_token}`,
         },
-        body: JSON.stringify({
-          orderId,
-          amount, // in rupees
-        }),
+        body: JSON.stringify({ orderId }),
       }
     );
-    
+
     if (!response.ok) {
-      const errorResponse = await response.json();
-      throw new Error(errorResponse.error || 'Failed to create Razorpay order');
+      const errorText = await response.text();
+      throw new Error(`Failed to create Razorpay order: ${errorText}`);
     }
-    
-    const data = await response.json();
-    
-    return {
-      id: data.data.id,
-      key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_89CCL7nHE71FCf',
-      amount: data.data.amount,
-      currency: data.data.currency,
-      notes: data.data.notes
-    };
-    
+
+    return response.json();
   } catch (error) {
     console.error('Error creating Razorpay order:', error);
-    return null;
+    throw error;
   }
 };
 
-// Verify payment status
+/**
+ * Verifies a Razorpay payment
+ */
 export const verifyRazorpayPayment = async (
   orderId: string,
   razorpayOrderId: string,
-  razorpayPaymentId: string
+  razorpayPaymentId: string,
+  accessToken?: string
 ): Promise<boolean> => {
   try {
-    // Get auth session
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      throw new Error('You must be logged in to verify payment');
+    // If no access token is provided, try to get it from the current session
+    let token = accessToken;
+    if (!token) {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      token = session?.access_token;
     }
     
-    // Call the verify payment Edge Function
+    if (!token) {
+      throw new Error('No authentication token available');
+    }
+    
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/razorpay-verify-payment`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           orderId,
@@ -86,37 +89,16 @@ export const verifyRazorpayPayment = async (
         }),
       }
     );
-    
+
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Payment verification failed: ${errorText}`);
+      const errorData = await response.json();
+      throw new Error(`Payment verification failed: ${JSON.stringify(errorData)}`);
     }
-    
+
     const result = await response.json();
     return result.success;
   } catch (error) {
     console.error('Error verifying Razorpay payment:', error);
     throw error;
   }
-};
-
-// Load the Razorpay SDK dynamically
-export const loadRazorpayScript = (): Promise<boolean> => {
-  return new Promise((resolve) => {
-    if ((window as any).Razorpay) {
-      resolve(true);
-      return;
-    }
-    
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.async = true;
-    script.onload = () => resolve(true);
-    script.onerror = () => {
-      console.error('Failed to load Razorpay script');
-      resolve(false);
-    };
-    
-    document.body.appendChild(script);
-  });
 };

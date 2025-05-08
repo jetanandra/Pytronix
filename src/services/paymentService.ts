@@ -1,4 +1,4 @@
-import { supabaseClient } from '../lib/supabaseClient';
+import { supabase } from '../lib/supabaseClient';
 
 /**
  * Loads the Razorpay script
@@ -25,9 +25,13 @@ export const loadRazorpayScript = (): Promise<boolean> => {
 /**
  * Creates a new Razorpay order
  */
-export const createRazorpayOrder = async (orderId: string): Promise<any> => {
+export const createRazorpayOrder = async (orderId: string, amount: number): Promise<any> => {
   try {
-    const { data: { session } } = await supabaseClient.auth.getSession();
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session || !session.access_token) {
+      throw new Error('Authentication required. Please log in again.');
+    }
     
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/razorpay-create-order`,
@@ -35,18 +39,22 @@ export const createRazorpayOrder = async (orderId: string): Promise<any> => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`,
+          'Authorization': `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ orderId }),
+        body: JSON.stringify({ 
+          orderId, 
+          amount 
+        }),
       }
     );
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Failed to create Razorpay order: ${errorText}`);
+      console.error('Razorpay order creation failed:', errorText);
+      throw new Error(`Failed to create Razorpay order: ${response.status} ${response.statusText}`);
     }
 
-    return response.json();
+    return await response.json();
   } catch (error) {
     console.error('Error creating Razorpay order:', error);
     throw error;
@@ -66,7 +74,7 @@ export const verifyRazorpayPayment = async (
     // If no access token is provided, try to get it from the current session
     let token = accessToken;
     if (!token) {
-      const { data: { session } } = await supabaseClient.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       token = session?.access_token;
     }
     

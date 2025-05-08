@@ -7,6 +7,7 @@ interface OrderDetails {
   total: number;
   shipping_address: any;
   payment_details: any;
+  status?: string;
 }
 
 /**
@@ -102,47 +103,6 @@ export const createRazorpayOrder = async (orderId: string, amount: number) => {
   } catch (error) {
     console.error('Error creating Razorpay order:', error);
     toast.error('Failed to create payment order');
-    throw error;
-  }
-};
-
-/**
- * Verify Razorpay payment
- */
-export const verifyRazorpayPayment = async (
-  orderId: string,
-  razorpayOrderId: string,
-  razorpayPaymentId: string
-) => {
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-
-    if (!session) {
-      console.error('No active session');
-      throw new Error('Authentication required');
-    }
-
-    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/razorpay-verify-payment`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session?.access_token}`
-      },
-      body: JSON.stringify({
-        orderId,
-        razorpayOrderId,
-        razorpayPaymentId
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Payment verification failed: ${errorText}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error verifying payment:', error);
     throw error;
   }
 };

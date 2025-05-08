@@ -167,11 +167,15 @@ const CheckoutPage: React.FC = () => {
         if (formState.paymentMethod === 'razorpay') {
           try {
             // Create Razorpay order
+            console.log('Attempting to create Razorpay order for amount:', cart.total);
             const razorpayData = await createRazorpayOrder(id, cart.total);
             
             if (!razorpayData || !razorpayData.id) {
-              throw new Error('Failed to create Razorpay order');
+              console.error('Razorpay response missing order ID:', razorpayData);
+              throw new Error('Invalid response from payment gateway');
             }
+            
+            console.log('Razorpay order created successfully:', razorpayData.id);
             
             // Set the Razorpay order with needed information for the component
             setRazorpayOrder({
@@ -189,9 +193,14 @@ const CheckoutPage: React.FC = () => {
             } as Order);
             
           } catch (error) {
-            console.error('Razorpay error:', error);
-            setPaymentError('Payment gateway error. Please try again or choose a different payment method.');
-            toast.error('Payment gateway error. Please try again.');
+            console.error('Razorpay order creation error:', error);
+            const errorMessage = error instanceof Error 
+              ? error.message 
+              : 'Unknown payment gateway error';
+              
+            setPaymentError(`Payment setup failed: ${errorMessage}. Please try again or choose Cash on Delivery.`);
+            setLoading(false);
+            toast.error('Payment gateway error. Please try Cash on Delivery instead.');
           }
         } else {
           // COD flow
@@ -201,15 +210,21 @@ const CheckoutPage: React.FC = () => {
         }
       } catch (error) {
         console.error('Error creating order:', error);
-        toast.error('Error creating order: ' + (error as any)?.message || 'Failed to create order');
+        const errorMessage = error instanceof Error 
+          ? error.message 
+          : 'Failed to create order';
+          
+        toast.error('Error creating order: ' + errorMessage);
+        setLoading(false);
       }
     } catch (error) {
       console.error('Error placing order:', error);
-      toast.error('Error placing order: ' + (error as any)?.message || 'Failed to place order');
-    } finally {
-      if (formState.paymentMethod !== 'razorpay') {
-        setLoading(false);
-      }
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Failed to place order';
+        
+      toast.error('Error placing order: ' + errorMessage);
+      setLoading(false);
     }
   };
   

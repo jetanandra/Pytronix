@@ -34,6 +34,7 @@ Deno.serve(async (req) => {
     // Verify user is authenticated
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
+      console.error("Missing Authorization header");
       return new Response(
         JSON.stringify({ error: "Missing Authorization header" }),
         {
@@ -49,9 +50,26 @@ Deno.serve(async (req) => {
     // Get auth token
     const token = authHeader.replace("Bearer ", "");
 
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error("Missing Supabase environment variables");
+      return new Response(
+        JSON.stringify({ error: "Server configuration error" }),
+        {
+          status: 500,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        }
+      );
+    }
+
     const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") || "",
-      Deno.env.get("SUPABASE_ANON_KEY") || "",
+      supabaseUrl,
+      supabaseAnonKey,
       {
         global: {
           headers: {
@@ -64,6 +82,7 @@ Deno.serve(async (req) => {
     // Get user from token
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     if (userError || !user) {
+      console.error("User authentication error:", userError?.message);
       return new Response(
         JSON.stringify({ error: "Unauthorized", details: userError?.message }),
         {
@@ -77,10 +96,28 @@ Deno.serve(async (req) => {
     }
 
     // Parse request body
-    const { orderId, amount } = await req.json();
+    let requestBody;
+    try {
+      requestBody = await req.json();
+    } catch (error) {
+      console.error("Error parsing request body:", error);
+      return new Response(
+        JSON.stringify({ error: "Invalid request body" }),
+        {
+          status: 400,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        }
+      );
+    }
+
+    const { orderId, amount } = requestBody;
 
     // Validate required fields
     if (!orderId || !amount) {
+      console.error("Missing required fields:", { orderId, amount });
       return new Response(
         JSON.stringify({ error: "Missing required fields" }),
         {
@@ -93,36 +130,59 @@ Deno.serve(async (req) => {
       );
     }
     
+    // Get Razorpay credentials
+    const razorpayKeyId = Deno.env.get("RAZORPAY_KEY_ID") || "rzp_test_89CCL7nHE71FCf";
+    const razorpayKeySecret = Deno.env.get("RAZORPAY_KEY_SECRET") || "w8OhmDRlhg5iaf7Bg1bgQVUX";
+    
     // Create Razorpay instance
     const razorpay = new Razorpay({
-      key_id: Deno.env.get("RAZORPAY_KEY_ID") || "rzp_test_89CCL7nHE71FCf",
-      key_secret: Deno.env.get("RAZORPAY_KEY_SECRET") || "w8OhmDRlhg5iaf7Bg1bgQVUX",
+      key_id: razorpayKeyId,
+      key_secret: razorpayKeySecret,
     });
 
-    console.log("Creating Razorpay order for amount:", amount);
+    // Ensure amount is a number and convert to paise (smallest currency unit)
+    const amountInPaise = Math.round(parseFloat(amount) * 100);
+    console.log("Creating Razorpay order for amount:", amount, "amountInPaise:", amountInPaise);
 
     // Create Razorpay order
-    const order = await razorpay.orders.create({
-      amount: Math.round(amount * 100), // Convert to paise
-      currency: "INR",
-      receipt: `receipt_${orderId.substring(0, 8)}`,
-      notes: {
-        order_id: orderId,
-        user_id: user.id
-      },
-    });
+    let razorpayOrder;
+    try {
+      razorpayOrder = await razorpay.orders.create({
+        amount: amountInPaise,
+        currency: "INR",
+        receipt: `receipt_${orderId.substring(0, 8)}`,
+        notes: {
+          order_id: orderId,
+          user_id: user.id
+        },
+      });
+    } catch (razorpayError) {
+      console.error("Razorpay order creation error:", razorpayError);
+      return new Response(
+        JSON.stringify({ 
+          error: "Failed to create Razorpay order", 
+          details: razorpayError.message || "Payment gateway error" 
+        }),
+        {
+          status: 500,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        }
+      );
+    }
 
-    console.log("Razorpay order created:", order.id);
+    console.log("Razorpay order created successfully:", razorpayOrder.id);
 
-    // Update the Supabase order with Razorpay order ID
+    // Update the Supabase order with Razorpay order ID and payment details
     const { error: updateError } = await supabase
       .from("orders")
       .update({
-        razorpay_order_id: order.id,
         payment_provider: "razorpay",
         payment_details: {
-          razorpay_order_id: order.id,
-          razorpay_key: Deno.env.get("RAZORPAY_KEY_ID") || "rzp_test_89CCL7nHE71FCf",
+          razorpay_order_id: razorpayOrder.id,
+          razorpay_key: razorpayKeyId,
           status: "created"
         }
       })
@@ -130,17 +190,16 @@ Deno.serve(async (req) => {
 
     if (updateError) {
       console.error("Error updating order with razorpay details:", updateError);
-      // Continue anyway, not critical
+      // Log the error but continue as this isn't critical for the payment flow
     }
 
     return new Response(
       JSON.stringify({
-        data: {
-          id: order.id,
-          amount: order.amount,
-          currency: order.currency,
-          notes: order.notes
-        }
+        id: razorpayOrder.id,
+        key: razorpayKeyId,
+        amount: razorpayOrder.amount,
+        currency: razorpayOrder.currency,
+        notes: razorpayOrder.notes
       }),
       {
         status: 200,
@@ -151,12 +210,12 @@ Deno.serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error("Razorpay order creation error:", error);
+    console.error("Unexpected error in Razorpay order creation:", error);
     
     return new Response(
       JSON.stringify({ 
         error: "Failed to create Razorpay order", 
-        details: error.message 
+        details: error.message || "An unexpected error occurred" 
       }),
       {
         status: 500,

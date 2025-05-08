@@ -118,7 +118,8 @@ Deno.serve(async (req) => {
             razorpay_order_id: order.id,
             status: 'created',
             method: 'razorpay',
-          }
+          },
+          razorpay_order_id: order.id
         })
         .eq('id', orderId);
 

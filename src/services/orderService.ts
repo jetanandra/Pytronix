@@ -129,7 +129,8 @@ export const createOrder = async (
           payment_details: {
             ...paymentDetails,
             razorpay_order_id: razorpayOrder.id
-          }
+          },
+          razorpay_order_id: razorpayOrder.id
         })
         .eq('id', order.id);
         

@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
     // If we're processing a webhook from Razorpay (with signature), verify it
     if (razorpaySignature) {
       // Webhook secret - this should be the secret you set in Razorpay dashboard
-      const webhookSecret = Deno.env.get("RAZORPAY_WEBHOOK_SECRET") || "your-webhook-secret";
+      const webhookSecret = Deno.env.get("RAZORPAY_WEBHOOK_SECRET") || "Debanga@91";
       
       // Verify signature if provided
       const expectedSignature = crypto
@@ -98,7 +98,8 @@ Deno.serve(async (req) => {
               razorpay_payment_id: razorpayPaymentId,
               payment_timestamp: new Date().toISOString(),
               amount: payment.amount / 100, // Convert from paise to rupees
-            }
+            },
+            razorpay_payment_id: razorpayPaymentId
           })
           .eq('id', orderId);
           

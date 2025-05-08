@@ -83,7 +83,8 @@ export const verifyRazorpayPayment = async (
           razorpay_payment_id: paymentId,
           payment_timestamp: new Date().toISOString(),
         },
-        status: 'processing' // Update order status to processing once payment is confirmed
+        status: 'processing', // Update order status to processing once payment is confirmed
+        razorpay_payment_id: paymentId
       })
       .eq('id', orderId)
       .select();

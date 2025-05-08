@@ -34,6 +34,7 @@ Deno.serve(async (req) => {
     // Verify user is authenticated
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
+      console.error("Missing Authorization header in verify-payment request");
       return new Response(
         JSON.stringify({ error: "Missing Authorization header" }),
         {
@@ -61,9 +62,24 @@ Deno.serve(async (req) => {
 
     // Get user from session
     const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
+    if (userError) {
+      console.error("User authentication error:", userError);
       return new Response(
-        JSON.stringify({ error: "Unauthorized", details: userError?.message }),
+        JSON.stringify({ error: "Authentication failed", details: userError.message }),
+        {
+          status: 401,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        }
+      );
+    }
+
+    if (!user) {
+      console.error("No user found in the session");
+      return new Response(
+        JSON.stringify({ error: "User not found in session" }),
         {
           status: 401,
           headers: {
@@ -75,10 +91,28 @@ Deno.serve(async (req) => {
     }
 
     // Parse request body
-    const { orderId, razorpayOrderId, razorpayPaymentId } = await req.json();
+    let requestBody;
+    try {
+      requestBody = await req.json();
+    } catch (e) {
+      console.error("Error parsing request JSON:", e);
+      return new Response(
+        JSON.stringify({ error: "Invalid request format" }),
+        {
+          status: 400,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        }
+      );
+    }
+
+    const { orderId, razorpayOrderId, razorpayPaymentId } = requestBody;
 
     // Validate required fields
     if (!orderId || !razorpayOrderId || !razorpayPaymentId) {
+      console.error("Missing required fields in verify-payment request");
       return new Response(
         JSON.stringify({ error: "Missing required fields" }),
         {
@@ -116,6 +150,7 @@ Deno.serve(async (req) => {
 
     // Verify user owns this order
     if (order.user_id !== user.id) {
+      console.error("User ID mismatch", { orderUserId: order.user_id, userId: user.id });
       return new Response(
         JSON.stringify({ error: "Unauthorized access to order" }),
         {
@@ -130,6 +165,7 @@ Deno.serve(async (req) => {
 
     // Verify Razorpay order ID matches
     if (order.razorpay_order_id !== razorpayOrderId) {
+      console.error("Order ID mismatch", { storedOrderId: order.razorpay_order_id, receivedOrderId: razorpayOrderId });
       return new Response(
         JSON.stringify({ error: "Order ID mismatch" }),
         {
@@ -170,6 +206,7 @@ Deno.serve(async (req) => {
       );
     }
 
+    console.log("Payment verified successfully for order:", orderId);
     return new Response(
       JSON.stringify({
         success: true,

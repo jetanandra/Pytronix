@@ -22,9 +22,9 @@ declare global {
 const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, onCancel }) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [scriptLoaded, setScriptLoaded] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
     const loadScript = async () => {
@@ -53,7 +53,7 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
     }
   }, [scriptLoaded, order]);
   
-  const openRazorpayCheckout = () => {
+  const openRazorpayCheckout = async () => {
     if (!order || !order.payment_details?.razorpay_order_id) {
       setError("Payment information is missing");
       toast.error('Payment information missing');
@@ -66,8 +66,17 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
       return;
     }
     
+    // Get the current session for authentication
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) {
+      setError("Authentication session has expired. Please log in again.");
+      toast.error('Authentication error. Please log in again.');
+      if (onCancel) onCancel();
+      return;
+    }
+    
     // Get Razorpay key ID from environment variable
-    const keyId = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_89CCL7nHE71FCf';
+    const keyId = order.payment_details.razorpay_key || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_89CCL7nHE71FCf';
     
     // Initialize Razorpay checkout
     const options = {
@@ -82,15 +91,25 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
         try {
           setLoading(true);
           
-          // Get the current session's access token for authentication
-          const { data } = await supabase.auth.getSession();
-          const session = data.session;
+          // Get fresh session token
+          const { data: sessionData } = await supabase.auth.getSession();
+          const accessToken = sessionData.session?.access_token;
+          
+          if (!accessToken) {
+            throw new Error('Authentication session has expired');
+          }
+          
+          console.log("Verifying payment with IDs:", {
+            orderId: order.id,
+            razorpayOrderId: order.payment_details.razorpay_order_id,
+            razorpayPaymentId: response.razorpay_payment_id
+          });
           
           const success = await verifyRazorpayPayment(
             order.id,
             order.payment_details.razorpay_order_id,
             response.razorpay_payment_id,
-            session?.access_token
+            accessToken
           );
           
           if (success) {
@@ -107,16 +126,17 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
             // Navigate to order details page
             navigate(`/orders/${order.id}`);
           } else {
+            setError('Payment verification failed. Please contact customer support.');
             toast.error('Payment verification failed');
-            setError("Payment verification failed. Please contact support.");
             if (onCancel) {
               onCancel();
             }
           }
         } catch (error) {
           console.error('Error handling payment:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          setError(`Payment processing error: ${errorMessage}`);
           toast.error('Payment processing error');
-          setError("Payment processing error. Please try again or contact support.");
           
           if (onCancel) {
             onCancel();
@@ -138,8 +158,8 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
       },
       modal: {
         ondismiss: function() {
-          toast.error('Payment cancelled');
           setError("Payment was cancelled.");
+          toast.error('Payment cancelled');
           
           if (onCancel) {
             onCancel();
@@ -152,8 +172,9 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
     try {
       const rzp = new window.Razorpay(options);
       rzp.on('payment.failed', function (response: any) {
-        toast.error(`Payment failed: ${response.error.description}`);
-        setError(`Payment failed: ${response.error.description}`);
+        const errorMsg = response.error.description || "Payment failed";
+        toast.error(`Payment failed: ${errorMsg}`);
+        setError(`Payment failed: ${errorMsg}`);
         if (onCancel) {
           onCancel();
         }

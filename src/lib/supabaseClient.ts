@@ -9,5 +9,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(
   supabaseUrl || '',
-  supabaseAnonKey || ''
+  supabaseAnonKey || '',
+  {
+    auth: {
+      persistSession: true,
+      detectSessionInUrl: true
+    },
+    global: {
+      fetch: (...args) => fetch(...args)
+    }
+  }
 );

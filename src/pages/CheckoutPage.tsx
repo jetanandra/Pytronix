@@ -619,9 +619,9 @@ const CheckoutPage: React.FC = () => {
                         Pay securely with credit/debit cards, UPI, etc.
                       </p>
                       <div className="flex mt-3 space-x-4">
-                        <img src="https://cdn.razorpay.com/static/assets/upi.svg" alt="UPI" className="h-10 object-contain" />
-                        <img src="https://cdn.razorpay.com/static/assets/visa.svg" alt="Visa" className="h-10 object-contain" />
-                        <img src="https://cdn.razorpay.com/static/assets/mastercard.svg" alt="Mastercard" className="h-10 object-contain" />
+                        <img src="https://i.imgur.com/T08Lcw2.png" alt="UPI" className="h-10 object-contain" />
+                        <img src="https://i.imgur.com/vEb10Db.png" alt="Visa" className="h-10 object-contain" />
+                        <img src="https://i.imgur.com/FQaHIop.png" alt="Mastercard" className="h-10 object-contain" />
                       </div>
                     </div>
                   </div>
@@ -675,33 +675,6 @@ const CheckoutPage: React.FC = () => {
               <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-white">
                 Order Summary
               </h2>
-              
-              {/* Order Items */}
-              <div className="space-y-4 mb-6">
-                {cart.items.map(({ product, quantity }) => (
-                  <div key={product.id} className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center">
-                      <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-dark-navy overflow-hidden flex-shrink-0 mr-3">
-                        <img src={product.image} alt={product.name} className="w-full h-full object-contain" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white text-sm">
-                          {product.name.length > 25 
-                            ? product.name.substring(0, 25) + '...' 
-                            : product.name
-                          }
-                        </p>
-                        <p className="text-gray-500 dark:text-gray-400 text-xs">
-                          Qty: {quantity}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="font-medium text-gray-900 dark:text-white">
-                      ₹{((product.discount_price || product.price) * quantity).toLocaleString()}
-                    </div>
-                  </div>
-                ))}
-              </div>
               
               {/* Free Shipping Banner */}
               {!qualifiesForFreeShipping && (

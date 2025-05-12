@@ -130,7 +130,7 @@ export const createRazorpayOrder = async (orderId: string, amount: number) => {
 /**
  * Create an order in the database
  */
-export const createOrder = async (orderDetails: OrderDetails): Promise<{ id: string, order_id: string }> => {
+export const createOrder = async (orderDetails: OrderDetails, cartItems: any[] = []): Promise<{ id: string, order_id: string }> => {
   try {
     // Make sure we have the active session and get the correct user_id
     const { data: { session } } = await supabase.auth.getSession();
@@ -154,6 +154,28 @@ export const createOrder = async (orderDetails: OrderDetails): Promise<{ id: str
     if (error) {
       console.error('Error creating order:', error);
       throw new Error(`Failed to create order: ${error.message}`);
+    }
+
+    const orderId = data.id;
+    
+    // If cart items are provided, insert them into order_items table
+    if (cartItems && cartItems.length > 0) {
+      const orderItems = cartItems.map(item => ({
+        order_id: orderId,
+        product_id: item.product.id,
+        quantity: item.quantity,
+        price: item.product.discount_price || item.product.price
+      }));
+      
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems);
+        
+      if (itemsError) {
+        console.error('Error creating order items:', itemsError);
+        // We don't throw here to avoid canceling the entire order if only items fail
+        toast.error('Order created but some items may not be recorded correctly');
+      }
     }
 
     // Generate a readable order ID (use first 8 chars of UUID)

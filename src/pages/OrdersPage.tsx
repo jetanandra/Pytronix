@@ -161,7 +161,7 @@ const OrdersPage: React.FC = () => {
                       </div>
                       
                       {/* Order Items Preview - Show first 2-3 items */}
-                      {order.items && order.items.length > 0 && (
+                      {order.items && order.items.length > 0 ? (
                         <div className="flex flex-wrap gap-2 mb-2">
                           {order.items.slice(0, 3).map((item) => (
                             <div key={item.id} className="flex items-center bg-gray-50 dark:bg-dark-navy rounded-md p-1">
@@ -184,6 +184,11 @@ const OrdersPage: React.FC = () => {
                               </span>
                             </div>
                           )}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-yellow-600 dark:text-yellow-400 mb-2 flex items-center">
+                          <AlertTriangle className="w-4 h-4 mr-1" />
+                          Items data may be missing for this order
                         </div>
                       )}
                       

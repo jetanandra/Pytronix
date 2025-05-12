@@ -275,7 +275,7 @@ const CheckoutPage: React.FC = () => {
       
       // Create order in database
       try {
-        const { id } = await createOrder(orderDetails);
+        const { id } = await createOrder(orderDetails, cart.items);
         setOrderData({
           orderId: id,
           total: finalTotal

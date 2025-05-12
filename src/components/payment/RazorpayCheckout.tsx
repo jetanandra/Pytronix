@@ -95,9 +95,6 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
           );
           
           if (success) {
-            // Clear cart
-            localStorage.removeItem('pytronix-cart');
-            
             // Important: Use onSuccess callback instead of direct navigation
             if (onSuccess) {
               onSuccess();

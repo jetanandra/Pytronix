@@ -12,7 +12,8 @@ import {
   Clock, 
   Download,
   ExternalLink,
-  LinkIcon
+  LinkIcon,
+  AlertTriangle
 } from 'lucide-react';
 import LoaderSpinner from '../components/ui/LoaderSpinner';
 import { toast } from 'react-hot-toast';
@@ -326,9 +327,19 @@ const OrderDetailPage: React.FC = () => {
               </button>
             </div>
             
-            <div className="divide-y divide-gray-200 dark:divide-gray-700">
-              {order.items?.length > 0 ? (
-                order.items.map((item) => (
+            {!order.items || order.items.length === 0 ? (
+              <div className="p-8 text-center">
+                <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">
+                  No Items Found
+                </h3>
+                <p className="text-gray-600 dark:text-soft-gray mb-4">
+                  We couldn't find any items for this order. This could happen for orders placed before the latest system update.
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                {order.items.map((item) => (
                   <div key={item.id} className="p-4 flex items-start sm:items-center flex-col sm:flex-row sm:justify-between">
                     <div className="flex items-center flex-1">
                       <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-dark-navy">
@@ -361,13 +372,9 @@ const OrderDetailPage: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="p-6 text-center">
-                  <p className="text-gray-500 dark:text-gray-400">No items found for this order.</p>
-                </div>
-              )}
-            </div>
+                ))}
+              </div>
+            )}
             
             {/* Order Summary */}
             <div className="p-6 bg-gray-50 dark:bg-dark-navy">

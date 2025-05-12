@@ -74,6 +74,7 @@ const CheckoutPage: React.FC = () => {
   const shippingFee = qualifiesForFreeShipping ? 0 : SHIPPING_FEE;
   const amountForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - cart.total);
   const progressPercentage = Math.min(100, (cart.total / FREE_SHIPPING_THRESHOLD) * 100);
+  const finalTotal = cart.total + shippingFee;
 
   // Calculate expected delivery date
   const getExpectedDeliveryDate = () => {
@@ -255,8 +256,6 @@ const CheckoutPage: React.FC = () => {
       setLoading(true);
       setPaymentError(null);
       
-      const finalTotal = cart.total + shippingFee;
-      
       // Order details for database
       const orderDetails = {
         user_id: user.id,
@@ -324,7 +323,6 @@ const CheckoutPage: React.FC = () => {
           // COD flow
           clearCart();
           setOrderComplete(true);
-          toast.success('Order placed successfully! You will pay on delivery.');
         }
       } catch (error) {
         console.error('Error creating order:', error);
@@ -355,42 +353,36 @@ const CheckoutPage: React.FC = () => {
     );
   }
   
-  // Order success
+  // Order Confirmation Modal
   if (orderComplete) {
-    const finalTotal = cart.total + shippingFee;
-    
     return (
-      <div className="min-h-screen pt-32 pb-12">
-        <div className="container-custom">
-          <div className="bg-white dark:bg-light-navy rounded-lg shadow-lg p-8 max-w-2xl mx-auto">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
-                <Check className="w-8 h-8 text-green-600 dark:text-green-400" />
-              </div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                Order Placed Successfully!
-              </h1>
-              <p className="text-gray-600 dark:text-soft-gray mb-6">
-                {orderData?.orderId && `Order ID: ${orderData.orderId.substring(0, 8)}`}
-              </p>
-              <p className="text-gray-600 dark:text-soft-gray mb-8">
-                Thank you for your purchase. We'll process your order soon.
-                {formState.paymentMethod === 'cod' && ` You will pay ₹${finalTotal.toLocaleString()} on delivery.`}
-              </p>
-              <div className="flex gap-4">
-                <button
-                  onClick={() => navigate('/')}
-                  className="btn-secondary"
-                >
-                  Return Home
-                </button>
-                <button
-                  onClick={() => navigate('/orders')}
-                  className="btn-primary"
-                >
-                  View Orders
-                </button>
-              </div>
+      <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 px-4">
+        <div className="bg-dark-navy border border-gray-700 max-w-md w-full rounded-lg shadow-lg overflow-hidden transform transition-all">
+          <div className="p-6 text-center">
+            <div className="w-16 h-16 bg-green-500 rounded-full mx-auto mb-4 flex items-center justify-center">
+              <Check className="w-8 h-8 text-white" />
+            </div>
+            <h2 className="text-2xl font-orbitron font-bold text-white mb-2">Order Placed Successfully!</h2>
+            {orderData?.orderId && (
+              <p className="text-gray-400 mb-4">Order ID: {orderData.orderId.substring(0, 8)}</p>
+            )}
+            <p className="text-gray-300 mb-6">
+              Thank you for your purchase. We'll process your order soon.
+              {formState.paymentMethod === 'cod' && ` You will pay ₹${finalTotal.toLocaleString()} on delivery.`}
+            </p>
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={() => navigate('/')}
+                className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors"
+              >
+                Return Home
+              </button>
+              <button
+                onClick={() => navigate('/orders')}
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
+              >
+                View Orders
+              </button>
             </div>
           </div>
         </div>
@@ -716,7 +708,7 @@ const CheckoutPage: React.FC = () => {
                 </div>
                 <div className="flex justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
                   <span className="text-lg font-semibold text-gray-900 dark:text-white">Total</span>
-                  <span className="text-lg font-bold text-neon-blue">₹{(cart.total + shippingFee).toLocaleString()}</span>
+                  <span className="text-lg font-bold text-neon-blue">₹{finalTotal.toLocaleString()}</span>
                 </div>
               </div>
               

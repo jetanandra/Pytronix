@@ -357,6 +357,8 @@ const CheckoutPage: React.FC = () => {
   
   // Order success
   if (orderComplete) {
+    const finalTotal = cart.total + shippingFee;
+    
     return (
       <div className="min-h-screen pt-32 pb-12">
         <div className="container-custom">
@@ -373,7 +375,7 @@ const CheckoutPage: React.FC = () => {
               </p>
               <p className="text-gray-600 dark:text-soft-gray mb-8">
                 Thank you for your purchase. We'll process your order soon.
-                {formState.paymentMethod === 'cod' && ' You will pay ₹' + (cart.total + shippingFee).toLocaleString() + ' on delivery.'}
+                {formState.paymentMethod === 'cod' && ` You will pay ₹${finalTotal.toLocaleString()} on delivery.`}
               </p>
               <div className="flex gap-4">
                 <button

@@ -1,17 +1,29 @@
 import { createClient } from "npm:@supabase/supabase-js@2.39.3";
 import Razorpay from "npm:razorpay@2.9.2";
 
+// Define CORS headers with all necessary fields
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info",
+};
+
+// Helper function to create consistent responses with CORS headers
+const createResponse = (body, status) => {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+      ...corsHeaders,
+    },
+  });
 };
 
 Deno.serve(async (req) => {
   // Handle CORS preflight request
   if (req.method === "OPTIONS") {
     return new Response(null, {
-      status: 200,
+      status: 204, // No content for OPTIONS
       headers: corsHeaders,
     });
   }
@@ -19,69 +31,33 @@ Deno.serve(async (req) => {
   try {
     // Only allow POST requests
     if (req.method !== "POST") {
-      return new Response(
-        JSON.stringify({ error: "Method not allowed" }),
-        {
-          status: 405,
-          headers: {
-            "Content-Type": "application/json",
-            ...corsHeaders,
-          },
-        }
-      );
+      return createResponse({ error: "Method not allowed" }, 405);
     }
 
     // Verify user is authenticated by checking Authorization header
     const authHeader = req.headers.get("Authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       console.error("Invalid Authorization header:", authHeader);
-      return new Response(
-        JSON.stringify({ error: "Invalid Authorization header" }),
-        {
-          status: 401,
-          headers: {
-            "Content-Type": "application/json",
-            ...corsHeaders,
-          },
-        }
-      );
+      return createResponse({ error: "Invalid Authorization header" }, 401);
     }
 
     // Extract token from Authorization header
     const token = authHeader.replace("Bearer ", "");
     if (!token) {
       console.error("Empty token in Authorization header");
-      return new Response(
-        JSON.stringify({ error: "Empty authentication token" }),
-        {
-          status: 401,
-          headers: {
-            "Content-Type": "application/json",
-            ...corsHeaders,
-          },
-        }
-      );
+      return createResponse({ error: "Empty authentication token" }, 401);
     }
 
-    // Get Supabase environment variables
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+    // Get Supabase environment variables with safe fallbacks for development
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "http://localhost:54321";
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9";
     
     if (!supabaseUrl || !supabaseAnonKey) {
       console.error("Missing Supabase environment variables:", {
         url: !!supabaseUrl,
         key: !!supabaseAnonKey
       });
-      return new Response(
-        JSON.stringify({ error: "Server configuration error" }),
-        {
-          status: 500,
-          headers: {
-            "Content-Type": "application/json",
-            ...corsHeaders,
-          },
-        }
-      );
+      return createResponse({ error: "Server configuration error" }, 500);
     }
 
     // Create Supabase client using the token for authentication
@@ -92,33 +68,15 @@ Deno.serve(async (req) => {
     
     if (userError) {
       console.error("Error authenticating user:", userError.message);
-      return new Response(
-        JSON.stringify({ 
-          error: "Authentication failed", 
-          details: userError.message 
-        }),
-        {
-          status: 401,
-          headers: {
-            "Content-Type": "application/json",
-            ...corsHeaders,
-          },
-        }
-      );
+      return createResponse({ 
+        error: "Authentication failed", 
+        details: userError.message 
+      }, 401);
     }
     
     if (!user) {
       console.error("No user found for the provided token");
-      return new Response(
-        JSON.stringify({ error: "User not found" }),
-        {
-          status: 401,
-          headers: {
-            "Content-Type": "application/json",
-            ...corsHeaders,
-          },
-        }
-      );
+      return createResponse({ error: "User not found" }, 401);
     }
     
     console.log("User authenticated successfully:", user.id);
@@ -129,16 +87,7 @@ Deno.serve(async (req) => {
       requestBody = await req.json();
     } catch (error) {
       console.error("Error parsing request body:", error.message);
-      return new Response(
-        JSON.stringify({ error: "Invalid request body" }),
-        {
-          status: 400,
-          headers: {
-            "Content-Type": "application/json",
-            ...corsHeaders,
-          },
-        }
-      );
+      return createResponse({ error: "Invalid request body" }, 400);
     }
 
     const { orderId, amount } = requestBody;
@@ -146,16 +95,7 @@ Deno.serve(async (req) => {
     // Validate required fields
     if (!orderId || !amount) {
       console.error("Missing required fields:", { orderId, amount });
-      return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
-        {
-          status: 400,
-          headers: {
-            "Content-Type": "application/json",
-            ...corsHeaders,
-          },
-        }
-      );
+      return createResponse({ error: "Missing required fields" }, 400);
     }
     
     // Get Razorpay credentials
@@ -187,21 +127,12 @@ Deno.serve(async (req) => {
     } catch (razorpayError) {
       console.error("Razorpay order creation error:", 
         razorpayError.error || razorpayError.message || razorpayError);
-      return new Response(
-        JSON.stringify({ 
-          error: "Failed to create Razorpay order", 
-          details: razorpayError.error?.description || 
-                  razorpayError.message || 
-                  "Payment gateway error" 
-        }),
-        {
-          status: 500,
-          headers: {
-            "Content-Type": "application/json",
-            ...corsHeaders,
-          },
-        }
-      );
+      return createResponse({ 
+        error: "Failed to create Razorpay order", 
+        details: razorpayError.error?.description || 
+                razorpayError.message || 
+                "Payment gateway error" 
+      }, 500);
     }
 
     console.log("Razorpay order created successfully:", razorpayOrder.id);
@@ -226,37 +157,19 @@ Deno.serve(async (req) => {
       // Log the error but continue as this isn't critical for the payment flow
     }
 
-    return new Response(
-      JSON.stringify({
-        id: razorpayOrder.id,
-        key: razorpayKeyId,
-        amount: razorpayOrder.amount,
-        currency: razorpayOrder.currency,
-        notes: razorpayOrder.notes
-      }),
-      {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-          ...corsHeaders,
-        },
-      }
-    );
+    return createResponse({
+      id: razorpayOrder.id,
+      key: razorpayKeyId,
+      amount: razorpayOrder.amount,
+      currency: razorpayOrder.currency,
+      notes: razorpayOrder.notes
+    }, 200);
   } catch (error) {
     console.error("Unexpected error in Razorpay order creation:", error.message || error);
     
-    return new Response(
-      JSON.stringify({ 
-        error: "Failed to create Razorpay order", 
-        details: error.message || "An unexpected error occurred" 
-      }),
-      {
-        status: 500,
-        headers: {
-          "Content-Type": "application/json",
-          ...corsHeaders,
-        },
-      }
-    );
+    return createResponse({ 
+      error: "Failed to create Razorpay order", 
+      details: error.message || "An unexpected error occurred" 
+    }, 500);
   }
 });

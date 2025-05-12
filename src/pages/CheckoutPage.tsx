@@ -621,7 +621,7 @@ const CheckoutPage: React.FC = () => {
                         Pay securely with credit/debit cards, UPI, etc.
                       </p>
                       <div className="flex mt-3 space-x-4">
-                        <img src="https://i.imgur.com/T08Lcw2.png" alt="UPI" className="h-10 object-contain" />
+                        <img src="https://www.npci.org.in/images/npci/upi/upi-logo.png" alt="UPI" className="h-10 object-contain" />
                         <img src="https://i.imgur.com/vEb10Db.png" alt="Visa" className="h-10 object-contain" />
                         <img src="https://i.imgur.com/FQaHIop.png" alt="Mastercard" className="h-10 object-contain" />
                       </div>

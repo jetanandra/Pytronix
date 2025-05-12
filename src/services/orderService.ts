@@ -74,18 +74,27 @@ export const getOrderById = async (id: string) => {
  */
 export const createRazorpayOrder = async (orderId: string, amount: number) => {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
+    // Get the current session with access token
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-    if (!session) {
-      console.error('No active session');
+    if (sessionError || !session) {
+      console.error('Authentication error:', sessionError || 'No active session');
+      toast.error('Authentication required. Please login again.');
       throw new Error('Authentication required');
     }
 
+    if (!session.access_token) {
+      console.error('Missing access token in session');
+      toast.error('Authentication token missing. Please login again.');
+      throw new Error('Authentication token missing');
+    }
+
+    // Make the request to the Razorpay edge function
     const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/razorpay-create-order`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session?.access_token}`
+        'Authorization': `Bearer ${session.access_token}`
       },
       body: JSON.stringify({
         orderId,
@@ -93,16 +102,27 @@ export const createRazorpayOrder = async (orderId: string, amount: number) => {
       })
     });
 
+    // Handle non-200 responses
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Razorpay error response:', errorText);
+      const contentType = response.headers.get('content-type');
+      let errorMessage;
+      
+      if (contentType && contentType.includes('application/json')) {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorData.details || `Request failed with status: ${response.status}`;
+      } else {
+        errorMessage = await response.text();
+      }
+      
+      console.error('Razorpay error response:', errorMessage);
       throw new Error(`Failed to create Razorpay order: ${response.status} ${response.statusText}`);
     }
 
+    // Parse and return the successful response
     return await response.json();
   } catch (error) {
     console.error('Error creating Razorpay order:', error);
-    toast.error('Failed to create payment order');
+    toast.error('Failed to create payment order. Please try again.');
     throw error;
   }
 };

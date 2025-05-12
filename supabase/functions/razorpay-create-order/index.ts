@@ -31,12 +31,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify user is authenticated
+    // Verify user is authenticated by checking Authorization header
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      console.error("Missing Authorization header");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      console.error("Invalid Authorization header:", authHeader);
       return new Response(
-        JSON.stringify({ error: "Missing Authorization header" }),
+        JSON.stringify({ error: "Invalid Authorization header" }),
         {
           status: 401,
           headers: {
@@ -47,14 +47,31 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get auth token
+    // Extract token from Authorization header
     const token = authHeader.replace("Bearer ", "");
+    if (!token) {
+      console.error("Empty token in Authorization header");
+      return new Response(
+        JSON.stringify({ error: "Empty authentication token" }),
+        {
+          status: 401,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        }
+      );
+    }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    // Get Supabase environment variables
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
     
     if (!supabaseUrl || !supabaseAnonKey) {
-      console.error("Missing Supabase environment variables");
+      console.error("Missing Supabase environment variables:", {
+        url: !!supabaseUrl,
+        key: !!supabaseAnonKey
+      });
       return new Response(
         JSON.stringify({ error: "Server configuration error" }),
         {
@@ -67,24 +84,19 @@ Deno.serve(async (req) => {
       );
     }
 
-    const supabase = createClient(
-      supabaseUrl,
-      supabaseAnonKey,
-      {
-        global: {
-          headers: {
-            Authorization: authHeader,
-          },
-        },
-      }
-    );
-
-    // Get user from token
+    // Create Supabase client using the token for authentication
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    
+    // Authenticate the user with the token
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-    if (userError || !user) {
-      console.error("User authentication error:", userError?.message);
+    
+    if (userError) {
+      console.error("Error authenticating user:", userError.message);
       return new Response(
-        JSON.stringify({ error: "Unauthorized", details: userError?.message }),
+        JSON.stringify({ 
+          error: "Authentication failed", 
+          details: userError.message 
+        }),
         {
           status: 401,
           headers: {
@@ -94,13 +106,29 @@ Deno.serve(async (req) => {
         }
       );
     }
+    
+    if (!user) {
+      console.error("No user found for the provided token");
+      return new Response(
+        JSON.stringify({ error: "User not found" }),
+        {
+          status: 401,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        }
+      );
+    }
+    
+    console.log("User authenticated successfully:", user.id);
 
     // Parse request body
     let requestBody;
     try {
       requestBody = await req.json();
     } catch (error) {
-      console.error("Error parsing request body:", error);
+      console.error("Error parsing request body:", error.message);
       return new Response(
         JSON.stringify({ error: "Invalid request body" }),
         {
@@ -157,11 +185,14 @@ Deno.serve(async (req) => {
         },
       });
     } catch (razorpayError) {
-      console.error("Razorpay order creation error:", razorpayError);
+      console.error("Razorpay order creation error:", 
+        razorpayError.error || razorpayError.message || razorpayError);
       return new Response(
         JSON.stringify({ 
           error: "Failed to create Razorpay order", 
-          details: razorpayError.message || "Payment gateway error" 
+          details: razorpayError.error?.description || 
+                  razorpayError.message || 
+                  "Payment gateway error" 
         }),
         {
           status: 500,
@@ -179,6 +210,7 @@ Deno.serve(async (req) => {
     const { error: updateError } = await supabase
       .from("orders")
       .update({
+        razorpay_order_id: razorpayOrder.id,
         payment_provider: "razorpay",
         payment_details: {
           razorpay_order_id: razorpayOrder.id,
@@ -186,7 +218,8 @@ Deno.serve(async (req) => {
           status: "created"
         }
       })
-      .eq("id", orderId);
+      .eq("id", orderId)
+      .eq("user_id", user.id);
 
     if (updateError) {
       console.error("Error updating order with razorpay details:", updateError);
@@ -210,7 +243,7 @@ Deno.serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error("Unexpected error in Razorpay order creation:", error);
+    console.error("Unexpected error in Razorpay order creation:", error.message || error);
     
     return new Response(
       JSON.stringify({ 

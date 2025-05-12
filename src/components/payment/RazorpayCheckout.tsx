@@ -98,15 +98,12 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
             // Clear cart
             localStorage.removeItem('pytronix-cart');
             
-            toast.success('Payment successful! Your order has been placed.');
-            
-            // Call onSuccess callback if provided
+            // Important: Use onSuccess callback instead of direct navigation
             if (onSuccess) {
               onSuccess();
             }
             
-            // Navigate to order details page
-            navigate(`/orders/${order.id}`);
+            toast.success('Payment successful! Your order has been placed.');
           } else {
             setError('Payment verification failed');
             toast.error('Payment verification failed');

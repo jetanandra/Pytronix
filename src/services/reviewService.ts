@@ -114,11 +114,13 @@ export const createReview = async (review: Omit<ProductReview, 'id' | 'created_a
       throw new Error('You have already reviewed this product. You can edit your existing review.');
     }
     
+    // Create the review
     const { data, error } = await supabase
       .from('product_reviews')
       .insert([{
         ...review,
-        user_id: userData.user.id
+        user_id: userData.user.id,
+        helpful_votes: 0
       }])
       .select()
       .single();
@@ -127,6 +129,9 @@ export const createReview = async (review: Omit<ProductReview, 'id' | 'created_a
       console.error('Error creating review:', error);
       throw error;
     }
+
+    // After creating review, call the stored function to update the product's rating
+    await updateProductRating(review.product_id);
 
     return data;
   } catch (error) {
@@ -140,6 +145,19 @@ export const createReview = async (review: Omit<ProductReview, 'id' | 'created_a
  */
 export const updateReview = async (reviewId: string, updates: Partial<ProductReview>): Promise<ProductReview> => {
   try {
+    // Get the review to get the product_id
+    const { data: reviewData, error: reviewError } = await supabase
+      .from('product_reviews')
+      .select('product_id')
+      .eq('id', reviewId)
+      .single();
+      
+    if (reviewError) {
+      console.error('Error getting review:', reviewError);
+      throw reviewError;
+    }
+    
+    // Update the review
     const { data, error } = await supabase
       .from('product_reviews')
       .update(updates)
@@ -151,6 +169,9 @@ export const updateReview = async (reviewId: string, updates: Partial<ProductRev
       console.error('Error updating review:', error);
       throw error;
     }
+
+    // After updating review, update the product's rating
+    await updateProductRating(reviewData.product_id);
 
     return data;
   } catch (error) {
@@ -164,6 +185,19 @@ export const updateReview = async (reviewId: string, updates: Partial<ProductRev
  */
 export const deleteReview = async (reviewId: string): Promise<void> => {
   try {
+    // Get the review to get the product_id
+    const { data: reviewData, error: reviewError } = await supabase
+      .from('product_reviews')
+      .select('product_id')
+      .eq('id', reviewId)
+      .single();
+      
+    if (reviewError) {
+      console.error('Error getting review:', reviewError);
+      throw reviewError;
+    }
+    
+    // Delete the review
     const { error } = await supabase
       .from('product_reviews')
       .delete()
@@ -173,9 +207,33 @@ export const deleteReview = async (reviewId: string): Promise<void> => {
       console.error('Error deleting review:', error);
       throw error;
     }
+
+    // After deleting review, update the product's rating
+    await updateProductRating(reviewData.product_id);
   } catch (error) {
     console.error('Error in deleteReview:', error);
     throw error;
+  }
+};
+
+/**
+ * Update product rating based on reviews
+ */
+export const updateProductRating = async (productId: string): Promise<void> => {
+  try {
+    // Call the RPC function to update product rating
+    const { error } = await supabase
+      .rpc('update_product_rating_manually', {
+        product_id_param: productId
+      });
+    
+    if (error) {
+      console.error('Error updating product rating:', error);
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error in updateProductRating:', error);
+    // Don't throw - this shouldn't stop the review process
   }
 };
 

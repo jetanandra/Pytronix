@@ -11,10 +11,9 @@ export const getProductReviews = async (productId: string): Promise<ProductRevie
       .from('product_reviews')
       .select(`
         *,
-        user:profiles(
+        user:user_id(
           id,
-          full_name,
-          profile_picture
+          email
         )
       `)
       .eq('product_id', productId)
@@ -25,7 +24,36 @@ export const getProductReviews = async (productId: string): Promise<ProductRevie
       throw error;
     }
 
-    return data || [];
+    // For each review, try to get the user's profile
+    const reviewsWithProfiles = await Promise.all(
+      (data || []).map(async (review) => {
+        if (review.user_id) {
+          try {
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('full_name, profile_picture')
+              .eq('id', review.user_id)
+              .single();
+              
+            if (profileData) {
+              return {
+                ...review,
+                user: {
+                  ...review.user,
+                  full_name: profileData.full_name,
+                  profile_picture: profileData.profile_picture
+                }
+              };
+            }
+          } catch (profileError) {
+            console.error('Error fetching profile for review:', profileError);
+          }
+        }
+        return review;
+      })
+    );
+
+    return reviewsWithProfiles;
   } catch (error) {
     console.error('Error in getProductReviews:', error);
     return [];
@@ -41,10 +69,9 @@ export const getAllReviews = async (): Promise<ProductReview[]> => {
       .from('product_reviews')
       .select(`
         *,
-        user:profiles(
+        user:user_id(
           id,
-          full_name,
-          profile_picture
+          email
         )
       `)
       .order('created_at', { ascending: false });
@@ -54,7 +81,36 @@ export const getAllReviews = async (): Promise<ProductReview[]> => {
       throw error;
     }
 
-    return data || [];
+    // For each review, try to get the user's profile
+    const reviewsWithProfiles = await Promise.all(
+      (data || []).map(async (review) => {
+        if (review.user_id) {
+          try {
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('full_name, profile_picture')
+              .eq('id', review.user_id)
+              .single();
+              
+            if (profileData) {
+              return {
+                ...review,
+                user: {
+                  ...review.user,
+                  full_name: profileData.full_name,
+                  profile_picture: profileData.profile_picture
+                }
+              };
+            }
+          } catch (profileError) {
+            console.error('Error fetching profile for review:', profileError);
+          }
+        }
+        return review;
+      })
+    );
+
+    return reviewsWithProfiles;
   } catch (error) {
     console.error('Error in getAllReviews:', error);
     return [];
@@ -132,6 +188,16 @@ export const createReview = async (review: Omit<ProductReview, 'id' | 'created_a
       throw error;
     }
 
+    // After creating a review, manually update the product rating
+    try {
+      await supabase.rpc('update_product_rating_manually', {
+        product_id_param: review.product_id
+      });
+    } catch (rpcError) {
+      console.error('Error updating product rating:', rpcError);
+      // Don't fail the whole operation if just the rating update fails
+    }
+
     return data;
   } catch (error) {
     console.error('Error in createReview:', error);
@@ -144,6 +210,18 @@ export const createReview = async (review: Omit<ProductReview, 'id' | 'created_a
  */
 export const updateReview = async (reviewId: string, updates: Partial<ProductReview>): Promise<ProductReview> => {
   try {
+    // Get the review first to get the product_id
+    const { data: existingReview, error: getError } = await supabase
+      .from('product_reviews')
+      .select('product_id')
+      .eq('id', reviewId)
+      .single();
+      
+    if (getError) {
+      console.error('Error getting existing review:', getError);
+      throw getError;
+    }
+    
     const { data, error } = await supabase
       .from('product_reviews')
       .update(updates)
@@ -154,6 +232,16 @@ export const updateReview = async (reviewId: string, updates: Partial<ProductRev
     if (error) {
       console.error('Error updating review:', error);
       throw error;
+    }
+
+    // After updating a review, manually update the product rating
+    try {
+      await supabase.rpc('update_product_rating_manually', {
+        product_id_param: existingReview.product_id
+      });
+    } catch (rpcError) {
+      console.error('Error updating product rating:', rpcError);
+      // Don't fail the whole operation if just the rating update fails
     }
 
     return data;
@@ -168,6 +256,18 @@ export const updateReview = async (reviewId: string, updates: Partial<ProductRev
  */
 export const deleteReview = async (reviewId: string): Promise<void> => {
   try {
+    // Get the review first to get the product_id
+    const { data: existingReview, error: getError } = await supabase
+      .from('product_reviews')
+      .select('product_id')
+      .eq('id', reviewId)
+      .single();
+      
+    if (getError) {
+      console.error('Error getting existing review:', getError);
+      throw getError;
+    }
+    
     const { error } = await supabase
       .from('product_reviews')
       .delete()
@@ -176,6 +276,16 @@ export const deleteReview = async (reviewId: string): Promise<void> => {
     if (error) {
       console.error('Error deleting review:', error);
       throw error;
+    }
+
+    // After deleting a review, manually update the product rating
+    try {
+      await supabase.rpc('update_product_rating_manually', {
+        product_id_param: existingReview.product_id
+      });
+    } catch (rpcError) {
+      console.error('Error updating product rating:', rpcError);
+      // Don't fail the whole operation if just the rating update fails
     }
   } catch (error) {
     console.error('Error in deleteReview:', error);

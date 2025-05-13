@@ -78,12 +78,13 @@ const ProductDetailPage: React.FC = () => {
       if (product?.id) {
         try {
           setReviewsLoading(true);
-          const [reviewData, userReviewData] = await Promise.all([
-            getProductReviews(product.id),
-            user ? getUserReviewForProduct(product.id) : null
-          ]);
+          const reviewData = await getProductReviews(product.id);
           setReviews(reviewData);
-          setUserReview(userReviewData);
+          
+          if (user) {
+            const userReviewData = await getUserReviewForProduct(product.id);
+            setUserReview(userReviewData);
+          }
         } catch (error) {
           console.error('Error fetching reviews:', error);
         } finally {
@@ -164,12 +165,27 @@ const ProductDetailPage: React.FC = () => {
     setEditingReview(null);
     // Refresh reviews
     if (product?.id) {
+      setReviewsLoading(true);
       Promise.all([
         getProductReviews(product.id),
-        getUserReviewForProduct(product.id)
+        user ? getUserReviewForProduct(product.id) : null
       ]).then(([reviewsData, userReviewData]) => {
         setReviews(reviewsData);
         setUserReview(userReviewData);
+        setReviewsLoading(false);
+        // Also update the product rating in the UI to reflect the new review
+        if (product) {
+          setProduct({
+            ...product,
+            rating: reviewsData.length > 0 
+              ? reviewsData.reduce((sum, review) => sum + review.rating, 0) / reviewsData.length 
+              : product.rating,
+            reviews: reviewsData.length
+          });
+        }
+      }).catch(error => {
+        console.error('Error refreshing reviews:', error);
+        setReviewsLoading(false);
       });
     }
   };
@@ -663,7 +679,14 @@ const ProductDetailPage: React.FC = () => {
                   reviews={filteredReviews} 
                   onRefresh={() => {
                     if (product?.id) {
-                      getProductReviews(product.id).then(data => setReviews(data));
+                      setReviewsLoading(true);
+                      getProductReviews(product.id).then(data => {
+                        setReviews(data);
+                        setReviewsLoading(false);
+                      }).catch(error => {
+                        console.error('Error refreshing reviews:', error);
+                        setReviewsLoading(false);
+                      });
                     }
                   }}
                   onEditReview={handleEditReview}

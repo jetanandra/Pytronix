@@ -50,6 +50,7 @@ const ReviewManagementPage: React.FC = () => {
   // Function to extract email username or get display name
   const getDisplayName = (review: ProductReview) => {
     if (review.user?.full_name) return review.user.full_name;
+    if (review.user?.email) return review.user.email.split('@')[0];
     return "Anonymous User";
   };
   

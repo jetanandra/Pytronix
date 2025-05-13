@@ -88,6 +88,7 @@ const ReviewList: React.FC<ReviewListProps> = ({ reviews, onRefresh, onEditRevie
   // Function to extract email username (before @)
   const getDisplayName = (review: ProductReview) => {
     if (review.user?.full_name) return review.user.full_name;
+    if (review.user?.email) return review.user.email.split('@')[0];
     return "Anonymous User";
   };
 

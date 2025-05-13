@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getOrderById, updateOrderStatus, deleteOrder, updateOrderTracking } from '../../services/orderService';
-import { Order, OrderStatus } from '../../types';
+import { getCancellationRequestsByOrderId, updateCancellationRequest } from '../../services/cancellationService';
+import { Order, OrderStatus, OrderCancellationRequest } from '../../types';
 import { 
   ArrowLeft, 
   Package, 
@@ -18,7 +19,10 @@ import {
   CalendarRange,
   AlertTriangle,
   Printer,
-  LinkIcon
+  LinkIcon,
+  MessageSquare,
+  ThumbsUp,
+  ThumbsDown
 } from 'lucide-react';
 import LoaderSpinner from '../../components/ui/LoaderSpinner';
 import { toast } from 'react-hot-toast';
@@ -30,6 +34,7 @@ const OrderDetail: React.FC = () => {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [cancellationRequests, setCancellationRequests] = useState<OrderCancellationRequest[]>([]);
   
   // Tracking information state
   const [trackingId, setTrackingId] = useState<string>('');
@@ -38,8 +43,15 @@ const OrderDetail: React.FC = () => {
   const [showTrackingForm, setShowTrackingForm] = useState<boolean>(false);
   const [updatingTracking, setUpdatingTracking] = useState<boolean>(false);
   
+  // Cancellation response state
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+  const [approvalStatus, setApprovalStatus] = useState<'approved' | 'rejected'>('approved');
+  const [adminResponse, setAdminResponse] = useState<string>('');
+  const [showResponseForm, setShowResponseForm] = useState<boolean>(false);
+  const [processingResponse, setProcessingResponse] = useState<boolean>(false);
+
   useEffect(() => {
-    const fetchOrder = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
         if (!id) {
@@ -47,7 +59,12 @@ const OrderDetail: React.FC = () => {
           return;
         }
         
-        const orderData = await getOrderById(id);
+        // Fetch both order data and cancellation requests
+        const [orderData, requestsData] = await Promise.all([
+          getOrderById(id),
+          getCancellationRequestsByOrderId(id)
+        ]);
+        
         if (orderData) {
           setOrder(orderData);
           // Initialize tracking form values if they exist
@@ -57,6 +74,9 @@ const OrderDetail: React.FC = () => {
         } else {
           setError(`Order with ID ${id} not found`);
         }
+
+        // Set cancellation requests
+        setCancellationRequests(requestsData);
       } catch (error) {
         console.error('Error fetching order:', error);
         setError('Failed to load order details');
@@ -65,7 +85,7 @@ const OrderDetail: React.FC = () => {
       }
     };
     
-    fetchOrder();
+    fetchData();
   }, [id]);
   
   const handleStatusChange = async (newStatus: OrderStatus) => {
@@ -137,6 +157,47 @@ const OrderDetail: React.FC = () => {
         console.error('Error deleting order:', error);
         toast.error('Failed to delete order');
       }
+    }
+  };
+  
+  const handleRequestAction = (requestId: string) => {
+    setSelectedRequestId(requestId);
+    setShowResponseForm(true);
+    setAdminResponse('');
+    setApprovalStatus('approved');
+  };
+  
+  const handleSubmitResponse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedRequestId) return;
+    
+    try {
+      setProcessingResponse(true);
+      await updateCancellationRequest(
+        selectedRequestId,
+        approvalStatus,
+        adminResponse
+      );
+      
+      // Refresh cancellation requests
+      const updatedRequests = await getCancellationRequestsByOrderId(id!);
+      setCancellationRequests(updatedRequests);
+      
+      // If approved a cancellation request, refresh order to get updated status
+      if (approvalStatus === 'approved') {
+        const updatedOrder = await getOrderById(id!);
+        if (updatedOrder) {
+          setOrder(updatedOrder);
+        }
+      }
+      
+      toast.success(`Request ${approvalStatus === 'approved' ? 'approved' : 'rejected'} successfully`);
+      setShowResponseForm(false);
+    } catch (error) {
+      console.error('Error updating request:', error);
+      toast.error('Failed to update request');
+    } finally {
+      setProcessingResponse(false);
     }
   };
   
@@ -353,6 +414,75 @@ const OrderDetail: React.FC = () => {
               </div>
             )}
           </div>
+          
+          {/* Cancellation/Replacement Requests */}
+          {cancellationRequests.length > 0 && (
+            <div className="bg-white dark:bg-light-navy rounded-lg shadow p-6">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                <MessageSquare className="w-5 h-5 mr-2 text-orange-500" />
+                Customer Requests
+              </h3>
+              
+              <div className="space-y-4">
+                {cancellationRequests.map((request) => (
+                  <div key={request.id} className={`border rounded-lg p-4 ${
+                    request.status === 'pending' ? 'border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-800' :
+                    request.status === 'approved' ? 'border-green-300 bg-green-50 dark:bg-green-900/20 dark:border-green-800' :
+                    'border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-800'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium text-gray-900 dark:text-white flex items-center">
+                        {request.type === 'cancel' ? 'Cancellation Request' : 'Replacement Request'}
+                        {request.status === 'pending' && (
+                          <span className="ml-2 px-2 py-0.5 bg-yellow-200 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200 text-xs rounded-full">
+                            Pending
+                          </span>
+                        )}
+                        {request.status === 'approved' && (
+                          <span className="ml-2 px-2 py-0.5 bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200 text-xs rounded-full">
+                            Approved
+                          </span>
+                        )}
+                        {request.status === 'rejected' && (
+                          <span className="ml-2 px-2 py-0.5 bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200 text-xs rounded-full">
+                            Rejected
+                          </span>
+                        )}
+                      </h4>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        {new Date(request.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-700 dark:text-soft-gray">
+                        <span className="font-medium">Reason:</span> {request.reason}
+                      </p>
+                    </div>
+                    
+                    {request.admin_response && (
+                      <div className="mt-2 p-2 bg-gray-100 dark:bg-dark-navy rounded">
+                        <p className="text-sm text-gray-700 dark:text-soft-gray">
+                          <span className="font-medium">Admin Response:</span> {request.admin_response}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {request.status === 'pending' && (
+                      <div className="mt-3 flex justify-end">
+                        <button 
+                          onClick={() => handleRequestAction(request.id)}
+                          className="btn-primary text-sm py-1"
+                        >
+                          Respond to Request
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           
           {/* Tracking Information Section - Only visible for shipped orders */}
           {order.status === 'shipped' && (
@@ -647,6 +777,11 @@ const OrderDetail: React.FC = () => {
                     <span className="font-medium text-gray-700 dark:text-gray-300">Status:</span> {order.payment_details.status}
                   </p>
                 )}
+                {order.razorpay_payment_id && (
+                  <p className="text-sm text-gray-600 dark:text-soft-gray">
+                    <span className="font-medium text-gray-700 dark:text-gray-300">Payment ID:</span> {order.razorpay_payment_id}
+                  </p>
+                )}
               </div>
             ) : (
               <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-4 rounded-r">
@@ -661,6 +796,93 @@ const OrderDetail: React.FC = () => {
           </div>
         </div>
       </div>
+      
+      {/* Response Form Modal */}
+      {showResponseForm && selectedRequestId && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-light-navy rounded-lg shadow-xl w-full max-w-md">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                Respond to Request
+              </h3>
+              
+              <form onSubmit={handleSubmitResponse} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-soft-gray">
+                    Status
+                  </label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="status"
+                        value="approved"
+                        checked={approvalStatus === 'approved'}
+                        onChange={() => setApprovalStatus('approved')}
+                        className="h-4 w-4 text-neon-blue focus:ring-neon-blue border-gray-300"
+                      />
+                      <span className="ml-2 text-sm text-gray-700 dark:text-soft-gray flex items-center">
+                        <ThumbsUp className="w-4 h-4 mr-1 text-green-500" /> Approve
+                      </span>
+                    </label>
+                    
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="status"
+                        value="rejected"
+                        checked={approvalStatus === 'rejected'}
+                        onChange={() => setApprovalStatus('rejected')}
+                        className="h-4 w-4 text-red-500 focus:ring-red-500 border-gray-300"
+                      />
+                      <span className="ml-2 text-sm text-gray-700 dark:text-soft-gray flex items-center">
+                        <ThumbsDown className="w-4 h-4 mr-1 text-red-500" /> Reject
+                      </span>
+                    </label>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-soft-gray mb-1">
+                    Response Message
+                  </label>
+                  <textarea
+                    value={adminResponse}
+                    onChange={(e) => setAdminResponse(e.target.value)}
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-dark-navy"
+                    placeholder={approvalStatus === 'approved' 
+                      ? 'Your request has been approved. Here are the next steps...'
+                      : 'We regret to inform you that your request cannot be approved because...'
+                    }
+                  />
+                </div>
+                
+                <div className="flex justify-end space-x-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowResponseForm(false)}
+                    className="px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-soft-gray hover:bg-gray-50 dark:hover:bg-dark-navy/60 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={processingResponse}
+                    className={approvalStatus === 'approved' ? 'btn-primary' : 'bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition'}
+                  >
+                    {processingResponse ? (
+                      <LoaderSpinner size="sm" color={approvalStatus === 'approved' ? 'blue' : 'green'} />
+                    ) : (
+                      approvalStatus === 'approved' ? 'Approve Request' : 'Reject Request'
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

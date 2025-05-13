@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getOrderById, cancelOrder } from '../services/orderService';
-import { Order } from '../types';
+import { getCancellationRequestsByOrderId } from '../services/cancellationService';
+import { Order, OrderCancellationRequest } from '../types';
 import { 
   ArrowLeft, 
   ShoppingBag, 
@@ -21,11 +22,15 @@ import {
   File,
   Shield,
   Zap,
-  MessageSquare
+  MessageSquare,
+  Plus
 } from 'lucide-react';
 import LoaderSpinner from '../components/ui/LoaderSpinner';
 import { toast } from 'react-hot-toast';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import CancellationModal from '../components/order/CancellationModal';
+import ReplacementModal from '../components/order/ReplacementModal';
+import CancellationStatus from '../components/order/CancellationStatus';
 
 const OrderDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -37,9 +42,13 @@ const OrderDetailPage: React.FC = () => {
   const [reviewProduct, setReviewProduct] = useState<string | null>(null);
   const [reviewText, setReviewText] = useState<string>('');
   const [reviewRating, setReviewRating] = useState<number>(5);
+  const [showCancellationModal, setShowCancellationModal] = useState<boolean>(false);
+  const [showReplacementModal, setShowReplacementModal] = useState<boolean>(false);
+  const [cancellationRequests, setCancellationRequests] = useState<OrderCancellationRequest[]>([]);
+  const [loadingRequests, setLoadingRequests] = useState<boolean>(true);
   
   useEffect(() => {
-    const fetchOrder = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
         if (!id) {
@@ -47,41 +56,56 @@ const OrderDetailPage: React.FC = () => {
           return;
         }
         
-        const orderData = await getOrderById(id);
+        // Fetch order and cancellation requests in parallel
+        const [orderData, requestsData] = await Promise.all([
+          getOrderById(id),
+          getCancellationRequestsByOrderId(id)
+        ]);
+        
         if (orderData) {
           console.log("Order data received:", orderData);
           setOrder(orderData);
         } else {
           setError(`Order not found`);
         }
+        
+        setCancellationRequests(requestsData);
       } catch (error) {
         console.error('Error fetching order:', error);
         setError('Failed to load order details');
       } finally {
         setLoading(false);
+        setLoadingRequests(false);
       }
     };
     
-    fetchOrder();
+    fetchData();
   }, [id]);
+  
+  const refreshRequests = async () => {
+    if (!id) return;
+    
+    try {
+      setLoadingRequests(true);
+      const requestsData = await getCancellationRequestsByOrderId(id);
+      setCancellationRequests(requestsData);
+    } catch (error) {
+      console.error('Error refreshing cancellation requests:', error);
+    } finally {
+      setLoadingRequests(false);
+    }
+  };
   
   const handleCancelOrder = async () => {
     if (!order) return;
     
-    if (window.confirm('Are you sure you want to cancel this order?')) {
-      try {
-        setCancelling(true);
-        const success = await cancelOrder(order.id);
-        if (success) {
-          setOrder({ ...order, status: 'cancelled' });
-          toast.success('Order cancelled successfully');
-        }
-      } catch (error) {
-        console.error('Error cancelling order:', error);
-      } finally {
-        setCancelling(false);
-      }
-    }
+    setShowCancellationModal(true);
+  };
+  
+  const handleRequestReplacement = () => {
+    if (!order) return;
+    
+    setShowReplacementModal(true);
   };
 
   const submitReview = (productId: string) => {
@@ -135,6 +159,15 @@ const OrderDetailPage: React.FC = () => {
         return 'text-gray-500';
     }
   };
+  
+  // Check if user has any pending requests
+  const hasPendingRequest = cancellationRequests.some(request => request.status === 'pending');
+  
+  // Check if user can cancel order (only pending or processing orders)
+  const canCancelOrder = order && ['pending', 'processing'].includes(order.status);
+  
+  // Check if user can request replacement (only delivered orders)
+  const canRequestReplacement = order && order.status === 'delivered';
   
   if (loading) {
     return (
@@ -456,7 +489,7 @@ const OrderDetailPage: React.FC = () => {
           </div>
           
           <div className="hidden sm:block">
-            {order.status !== 'cancelled' && order.status !== 'delivered' && (
+            {canCancelOrder && !hasPendingRequest && (
               <button
                 onClick={handleCancelOrder}
                 disabled={cancelling}
@@ -542,6 +575,20 @@ const OrderDetailPage: React.FC = () => {
         
         {/* Dynamic Order Status Message */}
         <OrderStatusMessage />
+        
+        {/* Cancellation Requests */}
+        {!loadingRequests && cancellationRequests.length > 0 && (
+          <div className="mb-8">
+            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+              Request History
+            </h3>
+            <div className="space-y-4">
+              {cancellationRequests.map(request => (
+                <CancellationStatus key={request.id} request={request} />
+              ))}
+            </div>
+          </div>
+        )}
         
         {/* Cancelled Notice */}
         {order.status === 'cancelled' && (
@@ -815,7 +862,7 @@ const OrderDetailPage: React.FC = () => {
               </h3>
               
               <div className="space-y-3">
-                {order.status !== 'cancelled' && order.status !== 'delivered' && (
+                {canCancelOrder && !hasPendingRequest && (
                   <button
                     onClick={handleCancelOrder}
                     disabled={cancelling}
@@ -824,6 +871,24 @@ const OrderDetailPage: React.FC = () => {
                     <XCircle className="w-4 h-4 mr-2" />
                     {cancelling ? 'Cancelling...' : 'Cancel Order'}
                   </button>
+                )}
+                
+                {canRequestReplacement && !hasPendingRequest && (
+                  <button
+                    onClick={handleRequestReplacement}
+                    className="w-full flex items-center justify-center px-4 py-2.5 border border-orange-300 dark:border-orange-700 rounded-lg text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Request Replacement
+                  </button>
+                )}
+                
+                {hasPendingRequest && (
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-500 p-3 rounded-r mb-2">
+                    <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                      You have a pending request for this order. Please wait for our team to process it.
+                    </p>
+                  </div>
                 )}
                 
                 <button className="w-full flex items-center justify-center px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-soft-gray hover:bg-gray-100 dark:hover:bg-dark-navy/60 transition">
@@ -843,6 +908,34 @@ const OrderDetailPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Cancellation Modal */}
+      <AnimatePresence>
+        {showCancellationModal && (
+          <CancellationModal 
+            orderId={order.id} 
+            onClose={() => setShowCancellationModal(false)} 
+            onSubmit={() => {
+              setShowCancellationModal(false);
+              refreshRequests();
+            }} 
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Replacement Modal */}
+      <AnimatePresence>
+        {showReplacementModal && (
+          <ReplacementModal 
+            orderId={order.id} 
+            onClose={() => setShowReplacementModal(false)} 
+            onSubmit={() => {
+              setShowReplacementModal(false);
+              refreshRequests();
+            }} 
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

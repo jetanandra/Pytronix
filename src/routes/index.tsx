@@ -28,6 +28,7 @@ const ResetPasswordPage = lazy(() => import('../pages/ResetPasswordPage'));
 const OrdersPage = lazy(() => import('../pages/OrdersPage'));
 const OrderDetailPage = lazy(() => import('../pages/OrderDetailPage'));
 const OrderDetail = lazy(() => import('../pages/admin/OrderDetail'));
+const OrderCancellationsPage = lazy(() => import('../pages/admin/OrderCancellationsPage'));
 
 const AppRoutes: React.FC = () => {
   return (
@@ -79,6 +80,11 @@ const AppRoutes: React.FC = () => {
               <Route path="/admin/orders/:id" element={
                 <AuthGuard>
                   <OrderDetail />
+                </AuthGuard>
+              } />
+              <Route path="/admin/cancellations" element={
+                <AuthGuard>
+                  <OrderCancellationsPage />
                 </AuthGuard>
               } />
               <Route path="/about" element={<AboutUsPage />} />

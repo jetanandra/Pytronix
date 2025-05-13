@@ -118,3 +118,35 @@ export interface Order {
 }
 
 export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+
+export type CancellationReason = 
+  | 'changed_mind' 
+  | 'found_better_price' 
+  | 'ordered_by_mistake' 
+  | 'wrong_item' 
+  | 'other';
+
+export type ReplacementReason = 
+  | 'defective_product' 
+  | 'damaged_on_arrival' 
+  | 'wrong_item_received' 
+  | 'missing_parts' 
+  | 'not_as_described' 
+  | 'other';
+
+export type RequestStatus = 
+  | 'pending' 
+  | 'approved' 
+  | 'rejected';
+
+export interface OrderCancellationRequest {
+  id: string;
+  order_id: string;
+  user_id: string;
+  type: 'cancel' | 'exchange';
+  reason: string;
+  status: RequestStatus;
+  admin_response?: string;
+  created_at: string;
+  updated_at: string;
+}

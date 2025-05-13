@@ -9,7 +9,9 @@ import {
   LogOut, 
   ChevronRight,
   Menu,
-  X
+  X,
+  AlertTriangle,
+  Layers
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -32,12 +34,17 @@ const AdminSidebar = () => {
     {
       name: 'Categories',
       path: '/admin/categories',
-      icon: <Package className="w-5 h-5" />
+      icon: <Layers className="w-5 h-5" />
     },
     {
       name: 'Orders',
       path: '/admin/orders',
       icon: <ShoppingBag className="w-5 h-5" />
+    },
+    {
+      name: 'Cancellations',
+      path: '/admin/cancellations',
+      icon: <AlertTriangle className="w-5 h-5" />
     },
     {
       name: 'Users',

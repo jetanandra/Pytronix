@@ -54,7 +54,9 @@ export const getOrderById = async (id: string) => {
           name,
           price,
           discount_price,
-          image
+          image,
+          category_id,
+          tags
         )
       )
     `)

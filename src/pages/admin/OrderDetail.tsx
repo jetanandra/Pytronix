@@ -22,7 +22,8 @@ import {
   LinkIcon,
   MessageSquare,
   ThumbsUp,
-  ThumbsDown
+  ThumbsDown,
+  Image as ImageIcon
 } from 'lucide-react';
 import LoaderSpinner from '../../components/ui/LoaderSpinner';
 import { toast } from 'react-hot-toast';
@@ -214,6 +215,39 @@ const OrderDetail: React.FC = () => {
   
   const printOrder = () => {
     window.print();
+  };
+
+  // Function to render image previews from image links in request reason
+  const renderImagePreviews = (reason: string) => {
+    // Extract image URLs from text
+    const regex = /Images:\s*(https?:\/\/[^,\s]+(?:,\s*https?:\/\/[^,\s]+)*)/;
+    const match = reason.match(regex);
+    
+    if (!match || !match[1]) return null;
+    
+    const imageUrls = match[1].split(',').map(url => url.trim());
+    
+    return (
+      <div className="mt-3">
+        <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Images:</h5>
+        <div className="grid grid-cols-3 gap-2">
+          {imageUrls.map((url, index) => (
+            <div key={index} className="relative">
+              <a href={url} target="_blank" rel="noopener noreferrer" className="block">
+                <img 
+                  src={url} 
+                  alt={`Image ${index + 1}`} 
+                  className="h-24 w-full object-cover rounded-lg border border-gray-200 dark:border-gray-700" 
+                  onError={(e) => {
+                    e.currentTarget.src = 'https://via.placeholder.com/100x100?text=Error';
+                  }}
+                />
+              </a>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   };
   
   if (loading) {
@@ -460,6 +494,9 @@ const OrderDetail: React.FC = () => {
                       </p>
                     </div>
                     
+                    {/* Display images if they exist in the reason text */}
+                    {request.type === 'exchange' && renderImagePreviews(request.reason)}
+                    
                     {request.admin_response && (
                       <div className="mt-2 p-2 bg-gray-100 dark:bg-dark-navy rounded">
                         <p className="text-sm text-gray-700 dark:text-soft-gray">
@@ -648,38 +685,49 @@ const OrderDetail: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {order.items?.map((item) => (
-                    <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-dark-navy/60 transition-colors">
-                      <td className="px-6 py-4 flex items-center">
-                        <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-dark-navy">
-                          {item.product?.image && (
-                            <img 
-                              src={item.product.image} 
-                              alt={item.product?.name} 
-                              className="h-full w-full object-contain"
-                            />
-                          )}
+                  {!order.items || order.items.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                        <div className="flex flex-col items-center">
+                          <AlertTriangle className="w-8 h-8 text-yellow-500 mb-2" />
+                          <p className="font-medium">No items found for this order</p>
                         </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
-                            {item.product?.name || "Unknown Product"}
-                          </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
-                            ID: {item.product_id.substring(0, 8)}...
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-white">
-                        ₹{Number(item.price).toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-white">
-                        {item.quantity}
-                      </td>
-                      <td className="px-6 py-4 text-right text-sm font-medium text-gray-900 dark:text-white">
-                        ₹{(item.price * item.quantity).toLocaleString()}
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    order.items.map((item) => (
+                      <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-dark-navy/60 transition-colors">
+                        <td className="px-6 py-4 flex items-center">
+                          <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-dark-navy">
+                            {item.product?.image && (
+                              <img 
+                                src={item.product.image} 
+                                alt={item.product?.name} 
+                                className="h-full w-full object-contain"
+                              />
+                            )}
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                              {item.product?.name || "Unknown Product"}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              ID: {item.product_id.substring(0, 8)}...
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-white">
+                          ₹{Number(item.price).toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-white">
+                          {item.quantity}
+                        </td>
+                        <td className="px-6 py-4 text-right text-sm font-medium text-gray-900 dark:text-white">
+                          ₹{(item.price * item.quantity).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                   
                   {/* Order Total */}
                   <tr className="bg-gray-50 dark:bg-dark-navy">

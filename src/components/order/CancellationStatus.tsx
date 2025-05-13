@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, CheckCircle, XCircle, Hourglass, CalendarClock, Calendar } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, Hourglass, CalendarClock, Calendar, Image } from 'lucide-react';
 import { OrderCancellationRequest, RequestStatus } from '../../types';
 import { motion } from 'framer-motion';
 
@@ -45,8 +45,53 @@ const CancellationStatus: React.FC<CancellationStatusProps> = ({ request }) => {
         };
     }
   };
+  
+  // Function to extract and display image URLs from the reason text
+  const renderImagePreviews = () => {
+    // Extract image URLs using regex
+    const regex = /Images:\s*(https?:\/\/[^,\s]+(?:,\s*https?:\/\/[^,\s]+)*)/;
+    const match = request.reason.match(regex);
+    
+    if (!match || !match[1]) return null;
+    
+    const imageUrls = match[1].split(',').map(url => url.trim());
+    
+    return (
+      <div className="mt-3">
+        <h5 className="text-sm font-medium text-gray-700 dark:text-soft-white mb-2 flex items-center">
+          <Image className="w-4 h-4 mr-1.5" /> Images:
+        </h5>
+        <div className="grid grid-cols-3 gap-2">
+          {imageUrls.map((url, index) => (
+            <a 
+              key={index} 
+              href={url} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="block rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 hover:border-neon-blue dark:hover:border-neon-blue transition-colors"
+            >
+              <img 
+                src={url} 
+                alt={`Image ${index + 1}`} 
+                className="h-24 w-full object-cover" 
+                onError={(e) => {
+                  e.currentTarget.src = 'https://via.placeholder.com/100x100?text=Error';
+                }}
+              />
+            </a>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   const statusConfig = getStatusConfig(request.status);
+  
+  // Function to format reason text, removing the image URLs section
+  const formatReason = (reason: string) => {
+    // Strip out the "Images: url1, url2" part
+    return reason.replace(/\n\nImages:.*$/s, '');
+  };
 
   return (
     <motion.div
@@ -81,8 +126,11 @@ const CancellationStatus: React.FC<CancellationStatusProps> = ({ request }) => {
           <div className="mt-3">
             <div className="flex items-start">
               <span className="text-sm font-medium text-gray-700 dark:text-soft-white mr-2">Reason:</span>
-              <span className="text-sm text-gray-600 dark:text-soft-gray">{request.reason}</span>
+              <span className="text-sm text-gray-600 dark:text-soft-gray">{formatReason(request.reason)}</span>
             </div>
+            
+            {/* Display images if this is a replacement request and has images */}
+            {request.type === 'exchange' && renderImagePreviews()}
             
             {request.admin_response && (
               <div className="mt-2 flex items-start">

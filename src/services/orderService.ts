@@ -202,7 +202,14 @@ export const getAllOrders = async () => {
         *,
         items:order_items (
           id,
-          quantity
+          product_id,
+          quantity,
+          price,
+          product:products (
+            id,
+            name,
+            image
+          )
         )
       `)
       .order('created_at', { ascending: false });

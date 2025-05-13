@@ -103,38 +103,57 @@ const ReplacementModal: React.FC<ReplacementModalProps> = ({ orderId, onClose, o
       return images.map(img => img.url);
     }
     
-    // Upload images to Supabase Storage
-    const uploadPromises = imagesToUpload.map(async (img) => {
-      if (!img.file) return img.url;
+    try {
+      // First check if bucket exists, if not create it
+      const { error: bucketError } = await supabase.storage.getBucket('replacement-images');
       
-      const filename = `${Date.now()}-${img.file.name}`;
-      const { data, error } = await supabase.storage
-        .from('replacement-images')
-        .upload(`${orderId}/${filename}`, img.file);
-      
-      if (error) {
-        console.error('Error uploading image:', error);
-        throw new Error(`Failed to upload image: ${error.message}`);
-      }
-      
-      // Get the public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('replacement-images')
-        .getPublicUrl(`${orderId}/${filename}`);
+      if (bucketError) {
+        console.log('Bucket not found, attempting to create it');
+        const { error: createBucketError } = await supabase.storage.createBucket('replacement-images', {
+          public: true
+        });
         
-      return publicUrl;
-    });
-    
-    // Wait for all uploads to complete
-    const uploadedUrls = await Promise.all(uploadPromises);
-    
-    // Combine uploaded URLs with existing URL-only images
-    return images.map((img, index) => {
-      if (img.file) {
-        return uploadedUrls[imagesToUpload.indexOf(img)];
+        if (createBucketError) {
+          throw new Error(`Bucket not found: ${createBucketError.message}`);
+        }
       }
-      return img.url;
-    });
+      
+      // Upload images to Supabase Storage
+      const uploadPromises = imagesToUpload.map(async (img) => {
+        if (!img.file) return img.url;
+        
+        const filename = `${Date.now()}-${img.file.name.replace(/\s+/g, '_')}`;
+        const { data, error } = await supabase.storage
+          .from('replacement-images')
+          .upload(`${orderId}/${filename}`, img.file);
+        
+        if (error) {
+          console.error('Error uploading image:', error);
+          throw new Error(`Failed to upload image: ${error.message}`);
+        }
+        
+        // Get the public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('replacement-images')
+          .getPublicUrl(`${orderId}/${filename}`);
+          
+        return publicUrl;
+      });
+      
+      // Wait for all uploads to complete
+      const uploadedUrls = await Promise.all(uploadPromises);
+      
+      // Combine uploaded URLs with existing URL-only images
+      return images.map((img, index) => {
+        if (img.file) {
+          return uploadedUrls[imagesToUpload.indexOf(img)];
+        }
+        return img.url;
+      });
+    } catch (error) {
+      console.error('Error uploading images:', error);
+      throw error;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -156,7 +175,7 @@ const ReplacementModal: React.FC<ReplacementModalProps> = ({ orderId, onClose, o
           imageUrls = await uploadImages();
         } catch (err) {
           console.error('Error uploading images:', err);
-          toast.error('Failed to upload images');
+          toast.error('Error uploading images: ' + (err instanceof Error ? err.message : String(err)));
           setLoading(false);
           return;
         }

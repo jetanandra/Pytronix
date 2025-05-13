@@ -247,6 +247,9 @@ const OrderList: React.FC = () => {
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Total
                   </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Items
+                  </th>
                   <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Actions
                   </th>
@@ -326,8 +329,31 @@ const OrderList: React.FC = () => {
                       <div className="text-sm font-medium text-gray-900 dark:text-white">
                         ₹{Number(order.total).toLocaleString()}
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        {order.items?.length || 0} items
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-1">
+                        {order.items && order.items.length > 0 ? (
+                          <>
+                            <div className="flex -space-x-2">
+                              {order.items.slice(0, 3).map((item, index) => (
+                                <div key={index} className="w-8 h-8 rounded-full border border-white dark:border-gray-800 overflow-hidden bg-gray-100 dark:bg-gray-800">
+                                  {item.product?.image ? (
+                                    <img src={item.product.image} alt="" className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                      <Package size={16} />
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              {order.items.length} {order.items.length === 1 ? 'item' : 'items'}
+                            </div>
+                          </>
+                        ) : (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 italic">No items</div>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

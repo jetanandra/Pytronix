@@ -11,7 +11,7 @@ export const getProductReviews = async (productId: string): Promise<ProductRevie
       .from('product_reviews')
       .select(`
         *,
-        user:user_id(
+        profiles!user_id(
           id,
           full_name,
           profile_picture
@@ -41,7 +41,7 @@ export const getAllReviews = async (): Promise<ProductReview[]> => {
       .from('product_reviews')
       .select(`
         *,
-        user:user_id(
+        profiles!user_id(
           id,
           full_name,
           profile_picture

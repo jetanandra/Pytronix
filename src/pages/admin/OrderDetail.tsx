@@ -67,6 +67,7 @@ const OrderDetail: React.FC = () => {
         ]);
         
         if (orderData) {
+          console.log("Order data received:", orderData);
           setOrder(orderData);
           // Initialize tracking form values if they exist
           if (orderData.tracking_id) setTrackingId(orderData.tracking_id);

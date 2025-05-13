@@ -11,7 +11,8 @@ import {
   Menu,
   X,
   AlertTriangle,
-  Layers
+  Layers,
+  Star
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -40,6 +41,11 @@ const AdminSidebar = () => {
       name: 'Orders',
       path: '/admin/orders',
       icon: <ShoppingBag className="w-5 h-5" />
+    },
+    {
+      name: 'Reviews',
+      path: '/admin/reviews',
+      icon: <Star className="w-5 h-5" />
     },
     {
       name: 'Cancellations',

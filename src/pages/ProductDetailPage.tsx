@@ -1,17 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import { ArrowLeft, ShoppingCart, Heart, Star, Info, ChevronRight, Truck, Shield } from 'lucide-react';
 import LoaderSpinner from '../components/ui/LoaderSpinner';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useProfile } from '../context/ProfileContext';
-import { Product } from '../types';
+import { Product, ProductReview } from '../types';
 import { getProductById, getCategoryById } from '../services/productService';
+import { getProductReviews, getUserReviewForProduct } from '../services/reviewService';
 import { toast } from 'react-hot-toast';
 import ReactMarkdown from 'react-markdown';
+import ReviewList from '../components/product/ReviewList';
+import ReviewForm from '../components/product/ReviewForm';
+import RatingSummary from '../components/product/RatingSummary';
 
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const { addToCart } = useCart();
   const { user } = useAuth();
   const { addProductToWishlist } = useProfile();
@@ -21,6 +26,15 @@ const ProductDetailPage: React.FC = () => {
   const [quantity, setQuantity] = useState<number>(1);
   const [activeImage, setActiveImage] = useState<string>('');
   const [category, setCategory] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'details' | 'warranty' | 'reviews'>('details');
+  
+  // Reviews state
+  const [reviews, setReviews] = useState<ProductReview[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [editingReview, setEditingReview] = useState<ProductReview | null>(null);
+  const [selectedRating, setSelectedRating] = useState<number | null>(null);
+  const [userReview, setUserReview] = useState<ProductReview | null>(null);
   
   useEffect(() => {
     const fetchProduct = async () => {
@@ -57,6 +71,41 @@ const ProductDetailPage: React.FC = () => {
 
     fetchProduct();
   }, [id]);
+  
+  // Load reviews and user's review when product changes
+  useEffect(() => {
+    const fetchReviews = async () => {
+      if (product?.id) {
+        try {
+          setReviewsLoading(true);
+          const [reviewData, userReviewData] = await Promise.all([
+            getProductReviews(product.id),
+            user ? getUserReviewForProduct(product.id) : null
+          ]);
+          setReviews(reviewData);
+          setUserReview(userReviewData);
+        } catch (error) {
+          console.error('Error fetching reviews:', error);
+        } finally {
+          setReviewsLoading(false);
+        }
+      }
+    };
+
+    fetchReviews();
+  }, [product?.id, user]);
+  
+  // Set the active tab when url hash changes
+  useEffect(() => {
+    const hash = location.hash;
+    if (hash === '#warranty') {
+      setActiveTab('warranty');
+    } else if (hash === '#reviews') {
+      setActiveTab('reviews');
+    } else {
+      setActiveTab('details');
+    }
+  }, [location.hash]);
 
   const handleAddToCart = () => {
     if (product) {
@@ -93,6 +142,42 @@ const ProductDetailPage: React.FC = () => {
       setQuantity(quantity - 1);
     }
   };
+  
+  // Calculate rating counts for the rating summary
+  const calculateRatingCounts = () => {
+    const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    
+    reviews.forEach(review => {
+      counts[review.rating] = (counts[review.rating] || 0) + 1;
+    });
+    
+    return counts;
+  };
+  
+  // Filter reviews by rating
+  const filteredReviews = selectedRating
+    ? reviews.filter(review => review.rating === selectedRating)
+    : reviews;
+  
+  const handleSubmitReview = () => {
+    setShowReviewForm(false);
+    setEditingReview(null);
+    // Refresh reviews
+    if (product?.id) {
+      Promise.all([
+        getProductReviews(product.id),
+        getUserReviewForProduct(product.id)
+      ]).then(([reviewsData, userReviewData]) => {
+        setReviews(reviewsData);
+        setUserReview(userReviewData);
+      });
+    }
+  };
+  
+  const handleEditReview = (review: ProductReview) => {
+    setEditingReview(review);
+    setShowReviewForm(true);
+  };
 
   if (loading) {
     return (
@@ -105,7 +190,7 @@ const ProductDetailPage: React.FC = () => {
   if (error || !product) {
     return (
       <div className="min-h-screen pt-32 pb-12 flex flex-col items-center justify-center">
-        <h1 className="text-2xl font-bold text-red-500 mb-4">{error || 'Product not found'}</h1>
+        <h1 className="text-2xl font-bold text-red-500 mb-4">{error || "Product not found"}</h1>
         <p className="text-gray-600 dark:text-soft-gray mb-6">
           The product you are looking for does not exist or could not be loaded. 
           Please ensure you're using a valid product ID.
@@ -192,7 +277,9 @@ const ProductDetailPage: React.FC = () => {
                   <span className="ml-1 text-gray-700 dark:text-soft-gray">{product.rating.toFixed(1)}</span>
                 </div>
                 <span className="mx-2 text-gray-400">|</span>
-                <span className="text-gray-600 dark:text-soft-gray">{product.reviews} reviews</span>
+                <Link to={`#reviews`} onClick={() => setActiveTab('reviews')} className="text-neon-blue hover:underline">
+                  {product.reviews} {product.reviews === 1 ? 'review' : 'reviews'}
+                </Link>
               </div>
               
               <div className="text-sm text-gray-600 dark:text-soft-gray">
@@ -375,94 +462,227 @@ const ProductDetailPage: React.FC = () => {
         <div className="mt-16">
           <div className="border-b border-gray-200 dark:border-gray-700">
             <nav className="-mb-px flex space-x-8">
-              <a href="#details" className="border-b-2 border-neon-blue py-4 px-1 text-sm font-medium text-neon-blue">
+              <a 
+                href="#details" 
+                onClick={() => setActiveTab('details')}
+                className={`border-b-2 py-4 px-1 text-sm font-medium ${
+                  activeTab === 'details'
+                    ? 'border-neon-blue text-neon-blue'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 hover:border-gray-300 dark:hover:text-soft-gray dark:hover:border-gray-600'
+                }`}
+              >
                 Details & Specifications
               </a>
-              <a href="#warranty" className="border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 hover:border-gray-300 dark:hover:text-soft-gray dark:hover:border-gray-600">
+              <a 
+                href="#warranty" 
+                onClick={() => setActiveTab('warranty')}
+                className={`border-b-2 py-4 px-1 text-sm font-medium ${
+                  activeTab === 'warranty'
+                    ? 'border-neon-blue text-neon-blue'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 hover:border-gray-300 dark:hover:text-soft-gray dark:hover:border-gray-600'
+                }`}
+              >
                 Warranty & Returns
+              </a>
+              <a 
+                href="#reviews" 
+                onClick={() => setActiveTab('reviews')}
+                className={`border-b-2 py-4 px-1 text-sm font-medium ${
+                  activeTab === 'reviews'
+                    ? 'border-neon-blue text-neon-blue'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 hover:border-gray-300 dark:hover:text-soft-gray dark:hover:border-gray-600'
+                }`}
+              >
+                Reviews ({product.reviews || 0})
               </a>
             </nav>
           </div>
           
           {/* Details & Specs Content */}
-          <div id="details" className="py-10">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-              {/* Full Description Section */}
-              <div className="lg:col-span-2">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
-                  Product Details
-                </h2>
+          {activeTab === 'details' && (
+            <div id="details" className="py-10">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                {/* Full Description Section */}
+                <div className="lg:col-span-2">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
+                    Product Details
+                  </h2>
+                  
+                  {product.full_description ? (
+                    <div className="prose prose-blue max-w-none dark:prose-invert">
+                      <ReactMarkdown>{product.full_description}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p className="text-gray-600 dark:text-soft-gray">
+                      {product.description}
+                    </p>
+                  )}
+                </div>
                 
-                {product.full_description ? (
-                  <div className="prose prose-blue max-w-none dark:prose-invert">
-                    <ReactMarkdown>{product.full_description}</ReactMarkdown>
-                  </div>
-                ) : (
-                  <p className="text-gray-600 dark:text-soft-gray">
-                    {product.description}
-                  </p>
-                )}
-              </div>
-              
-              {/* Specifications Table */}
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
-                  Specifications
-                </h2>
-                
-                {product.specifications && Object.keys(product.specifications).length > 0 ? (
-                  <div className="overflow-hidden border border-gray-200 dark:border-gray-700 rounded-lg">
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                      <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                        {Object.entries(product.specifications).map(([key, value], index) => (
-                          <tr key={index} className={index % 2 === 0 ? 'bg-gray-50 dark:bg-dark-navy' : 'bg-white dark:bg-light-navy'}>
-                            <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{key}</td>
-                            <td className="px-4 py-3 text-sm text-gray-600 dark:text-soft-gray">{value}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <p className="text-gray-600 dark:text-soft-gray">
-                    No detailed specifications available for this product.
-                  </p>
-                )}
+                {/* Specifications Table */}
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
+                    Specifications
+                  </h2>
+                  
+                  {product.specifications && Object.keys(product.specifications).length > 0 ? (
+                    <div className="overflow-hidden border border-gray-200 dark:border-gray-700 rounded-lg">
+                      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                          {Object.entries(product.specifications).map(([key, value], index) => (
+                            <tr key={index} className={index % 2 === 0 ? 'bg-gray-50 dark:bg-dark-navy' : 'bg-white dark:bg-light-navy'}>
+                              <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{key}</td>
+                              <td className="px-4 py-3 text-sm text-gray-600 dark:text-soft-gray">{value}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-gray-600 dark:text-soft-gray">
+                      No detailed specifications available for this product.
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          )}
           
           {/* Warranty & Returns Content */}
-          <div id="warranty" className="py-10 border-t border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
-              Warranty & Return Policy
-            </h2>
-            
-            {product.warranty_info ? (
-              <div className="prose prose-blue max-w-none dark:prose-invert">
-                <p className="text-gray-700 dark:text-soft-gray whitespace-pre-line">
-                  {product.warranty_info}
-                </p>
+          {activeTab === 'warranty' && (
+            <div id="warranty" className="py-10">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
+                Warranty & Return Policy
+              </h2>
+              
+              {product.warranty_info ? (
+                <div className="prose prose-blue max-w-none dark:prose-invert">
+                  <p className="text-gray-700 dark:text-soft-gray whitespace-pre-line">
+                    {product.warranty_info}
+                  </p>
+                </div>
+              ) : (
+                <div className="prose prose-blue max-w-none dark:prose-invert">
+                  <h3>Warranty Information</h3>
+                  <p>All products come with a standard 6-month warranty against manufacturing defects unless otherwise specified.</p>
+                  
+                  <h3>Return Policy</h3>
+                  <p>
+                    We accept returns within 7 days of delivery if the item is unused and in its original packaging. 
+                    Please contact our customer support team to initiate a return.
+                  </p>
+                  
+                  <h3>Refund Policy</h3>
+                  <p>
+                    Refunds will be processed within 7-10 business days after we receive the returned item. 
+                    Shipping costs are non-refundable unless the return is due to our error.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Reviews Content */}
+          {activeTab === 'reviews' && (
+            <div id="reviews" className="py-10">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
+                Customer Reviews
+              </h2>
+              
+              {/* Rating summary */}
+              <div className="mb-8">
+                <RatingSummary 
+                  averageRating={product.rating || 0}
+                  totalReviews={reviews.length}
+                  ratingCounts={calculateRatingCounts()}
+                  onFilterByRating={setSelectedRating}
+                  selectedRating={selectedRating}
+                />
               </div>
-            ) : (
-              <div className="prose prose-blue max-w-none dark:prose-invert">
-                <h3>Warranty Information</h3>
-                <p>All products come with a standard 6-month warranty against manufacturing defects unless otherwise specified.</p>
-                
-                <h3>Return Policy</h3>
-                <p>
-                  We accept returns within 7 days of delivery if the item is unused and in its original packaging. 
-                  Please contact our customer support team to initiate a return.
-                </p>
-                
-                <h3>Refund Policy</h3>
-                <p>
-                  Refunds will be processed within 7-10 business days after we receive the returned item. 
-                  Shipping costs are non-refundable unless the return is due to our error.
-                </p>
-              </div>
-            )}
-          </div>
+              
+              {/* Review form */}
+              {user && !showReviewForm && !editingReview && (
+                <div className="mb-8">
+                  {userReview ? (
+                    <button 
+                      onClick={() => {
+                        setEditingReview(userReview);
+                        setShowReviewForm(true);
+                      }}
+                      className="btn-primary"
+                    >
+                      Edit Your Review
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => setShowReviewForm(true)} 
+                      className="btn-primary"
+                    >
+                      Write a Review
+                    </button>
+                  )}
+                </div>
+              )}
+              
+              {showReviewForm && (
+                <div className="mb-8">
+                  <ReviewForm 
+                    productId={product.id} 
+                    existingReview={editingReview || undefined}
+                    onSubmitSuccess={handleSubmitReview}
+                    onCancel={() => {
+                      setShowReviewForm(false);
+                      setEditingReview(null);
+                    }}
+                  />
+                </div>
+              )}
+              
+              {/* Filter notice */}
+              {selectedRating !== null && (
+                <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-between">
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    Showing only {selectedRating}-star reviews
+                  </p>
+                  <button 
+                    onClick={() => setSelectedRating(null)}
+                    className="text-xs text-blue-700 dark:text-blue-300 underline"
+                  >
+                    Clear filter
+                  </button>
+                </div>
+              )}
+              
+              {/* Reviews list */}
+              {reviewsLoading ? (
+                <div className="flex justify-center py-8">
+                  <LoaderSpinner size="lg" color="blue" />
+                </div>
+              ) : (
+                <ReviewList 
+                  reviews={filteredReviews} 
+                  onRefresh={() => {
+                    if (product?.id) {
+                      getProductReviews(product.id).then(data => setReviews(data));
+                    }
+                  }}
+                  onEditReview={handleEditReview}
+                />
+              )}
+              
+              {/* Login prompt */}
+              {!user && (
+                <div className="mt-6 p-4 bg-gray-50 dark:bg-dark-navy border border-gray-200 dark:border-gray-700 rounded-lg text-center">
+                  <p className="text-gray-700 dark:text-soft-gray mb-3">
+                    You need to be logged in to write a review
+                  </p>
+                  <Link to="/login" state={{ from: location }} className="btn-primary">
+                    Sign In to Write a Review
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

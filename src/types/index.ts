@@ -26,7 +26,25 @@ export type Product = {
   specifications?: Record<string, string>;
   warranty_info?: string;
   created_at: string;
+  reviews_list?: ProductReview[]; // Added for storing fetched reviews
 };
+
+export interface ProductReview {
+  id: string;
+  product_id: string;
+  user_id: string;
+  rating: number;
+  title: string | null;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  helpful_votes: number;
+  is_verified_purchase: boolean;
+  user?: {
+    full_name?: string;
+    email?: string;
+  };
+}
 
 export type CartItem = {
   product: Product;

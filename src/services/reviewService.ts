@@ -11,10 +11,7 @@ export const getProductReviews = async (productId: string): Promise<ProductRevie
       .from('product_reviews')
       .select(`
         *,
-        user:profiles(
-          full_name,
-          email:auth.users(email)
-        )
+        profiles(full_name)
       `)
       .eq('product_id', productId)
       .order('created_at', { ascending: false });
@@ -40,10 +37,7 @@ export const getAllReviews = async (): Promise<ProductReview[]> => {
       .from('product_reviews')
       .select(`
         *,
-        user:profiles(
-          full_name,
-          email:auth.users(email)
-        )
+        profiles(full_name)
       `)
       .order('created_at', { ascending: false });
 
@@ -76,13 +70,9 @@ export const getUserReviewForProduct = async (productId: string): Promise<Produc
       .select('*')
       .eq('product_id', productId)
       .eq('user_id', userData.user.id)
-      .single();
+      .maybeSingle();
 
     if (error) {
-      // If review doesn't exist, return null instead of throwing error
-      if (error.code === 'PGRST116') {
-        return null;
-      }
       console.error('Error fetching user review:', error);
       throw error;
     }

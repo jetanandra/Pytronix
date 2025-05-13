@@ -85,6 +85,12 @@ const ReviewList: React.FC<ReviewListProps> = ({ reviews, onRefresh, onEditRevie
     return 'Just now';
   };
 
+  // Function to extract email username (before @)
+  const getDisplayName = (review: ProductReview) => {
+    if (review.user?.full_name) return review.user.full_name;
+    return "Anonymous User";
+  };
+
   return (
     <div className="space-y-6">
       {sortedReviews.length === 0 ? (
@@ -105,7 +111,7 @@ const ReviewList: React.FC<ReviewListProps> = ({ reviews, onRefresh, onEditRevie
                 </div>
                 <div>
                   <div className="font-medium text-gray-900 dark:text-white">
-                    {review.user?.full_name || review.user?.email?.split('@')[0] || 'Anonymous'}
+                    {getDisplayName(review)}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
                     {getRelativeTime(review.created_at)}
@@ -143,9 +149,9 @@ const ReviewList: React.FC<ReviewListProps> = ({ reviews, onRefresh, onEditRevie
             <div className="flex items-center justify-between">
               <button 
                 onClick={() => handleVoteHelpful(review.id)}
-                disabled={votingReviewId === review.id || user?.id === review.user_id}
+                disabled={votingReviewId === review.id || (user?.id === review.user_id)}
                 className={`text-xs flex items-center ${
-                  votingReviewId === review.id || user?.id === review.user_id
+                  votingReviewId === review.id || (user?.id === review.user_id)
                     ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
                     : 'text-gray-600 dark:text-gray-400 hover:text-neon-blue dark:hover:text-neon-blue'
                 }`}

@@ -46,6 +46,12 @@ const ReviewManagementPage: React.FC = () => {
       }
     }
   };
+
+  // Function to extract email username or get display name
+  const getDisplayName = (review: ProductReview) => {
+    if (review.user?.full_name) return review.user.full_name;
+    return "Anonymous User";
+  };
   
   const filteredReviews = reviews.filter(review => {
     let matches = true;
@@ -56,8 +62,7 @@ const ReviewManagementPage: React.FC = () => {
       matches = matches && (
         review.content.toLowerCase().includes(query) ||
         (review.title?.toLowerCase() || '').includes(query) ||
-        (review.user?.full_name?.toLowerCase() || '').includes(query) ||
-        (review.user?.email?.toLowerCase() || '').includes(query)
+        (getDisplayName(review).toLowerCase() || '').includes(query)
       );
     }
     
@@ -183,14 +188,11 @@ const ReviewManagementPage: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="text-sm font-medium text-gray-900 dark:text-white">
-                          {review.user?.full_name || review.user?.email?.split('@')[0] || 'Anonymous'}
+                          {getDisplayName(review)}
                         </div>
                         {review.is_verified_purchase && (
                           <CheckCircle className="w-4 h-4 ml-1.5 text-green-500" />
                         )}
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        {review.user?.email || 'Unknown'}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

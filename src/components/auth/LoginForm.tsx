@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Mail, Lock, User } from 'lucide-react';
+import { Mail, Lock, User, Phone } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import LoaderSpinner from '../ui/LoaderSpinner';
+import Modal from '../ui/Modal';
 
 const LoginForm: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -15,16 +16,28 @@ const LoginForm: React.FC = () => {
   // Get the redirect path from location state or default to home
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
   
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  
+  const [modal, setModal] = useState<{ open: boolean; type: 'error' | 'info'; message: string }>({ open: false, type: 'info', message: '' });
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (isSignUp) {
-      await signUp(email, password);
+      await signUp(email, password, name, phone);
+      if (!error) {
+        setModal({ open: true, type: 'info', message: 'Signup successful! Please check your email for confirmation.' });
+      } else {
+        setModal({ open: true, type: 'error', message: error });
+      }
     } else {
       await signIn(email, password);
-      // Navigate to the page they were trying to access
       if (!error) {
+        // Navigate to the page they were trying to access
         navigate(from, { replace: true });
+      } else {
+        setModal({ open: true, type: 'error', message: error });
       }
     }
   };
@@ -42,10 +55,13 @@ const LoginForm: React.FC = () => {
         </p>
       </div>
       
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded-md text-sm">
-          {error}
-        </div>
+      {modal.open && (
+        <Modal
+          open={modal.open}
+          type={modal.type}
+          message={modal.message}
+          onClose={() => setModal({ ...modal, open: false })}
+        />
       )}
       
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -109,6 +125,49 @@ const LoginForm: React.FC = () => {
               </Link>
             </div>
           </div>
+        )}
+        
+        {isSignUp && (
+          <>
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-soft-gray mb-1">
+                Full Name
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <User className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  className="pl-10 w-full px-4 py-2 bg-white dark:bg-dark-navy border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-neon-blue"
+                  placeholder="Your full name"
+                />
+              </div>
+            </div>
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-soft-gray mb-1">
+                Phone Number
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Phone className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                  className="pl-10 w-full px-4 py-2 bg-white dark:bg-dark-navy border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-neon-blue"
+                  placeholder="Your phone number"
+                />
+              </div>
+            </div>
+          </>
         )}
         
         <button

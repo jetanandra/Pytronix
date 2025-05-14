@@ -13,7 +13,7 @@ import {
   updateUserPreferences,
   subscribeToWishlistChanges
 } from '../services/profileService';
-import toast from 'react-hot-toast';
+import Modal from '../components/ui/Modal';
 
 interface ProfileContextType {
   profile: Profile | null;
@@ -41,6 +41,9 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [wishlist, setWishlist] = useState<Wishlist[]>([]);
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [modal, setModal] = useState<{ open: boolean; type: 'error' | 'info' | 'success' | 'warning'; message: string }>({ open: false, type: 'info', message: '' });
+
+  const showModal = (type: 'error' | 'info' | 'success' | 'warning', message: string) => setModal({ open: true, type, message });
 
   // Load user profile data
   const loadUserData = async () => {
@@ -62,7 +65,7 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setPreferences(data.preferences);
     } catch (error) {
       console.error('Error loading user profile data:', error);
-      toast.error('Failed to load profile data.');
+      showModal('error', 'Failed to load profile data.');
     } finally {
       setLoading(false);
     }
@@ -94,7 +97,7 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Profile operations
   const updateUserProfile = async (data: Partial<Profile>) => {
     if (!user) {
-      toast.error('You must be logged in to update your profile.');
+      showModal('error', 'You must be logged in to update your profile.');
       return;
     }
     
@@ -102,10 +105,10 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setLoading(true);
       const updatedProfile = await updateProfile(data);
       setProfile(updatedProfile);
-      toast.success('Profile updated successfully.');
+      showModal('success', 'Profile updated successfully.');
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error('Failed to update profile.');
+      showModal('error', 'Failed to update profile.');
       throw error;
     } finally {
       setLoading(false);
@@ -115,7 +118,7 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Address operations
   const addUserAddress = async (address: Omit<Address, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
     if (!user) {
-      toast.error('You must be logged in to add an address.');
+      showModal('error', 'You must be logged in to add an address.');
       return;
     }
     
@@ -125,10 +128,10 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // Refresh addresses to get the updated list with the new address
       const updatedAddresses = await getAddresses();
       setAddresses(updatedAddresses);
-      toast.success('Address added successfully.');
+      showModal('success', 'Address added successfully.');
     } catch (error) {
       console.error('Error adding address:', error);
-      toast.error('Failed to add address.');
+      showModal('error', 'Failed to add address.');
       throw error;
     } finally {
       setLoading(false);
@@ -137,7 +140,7 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const updateUserAddress = async (id: string, address: Partial<Address>) => {
     if (!user) {
-      toast.error('You must be logged in to update an address.');
+      showModal('error', 'You must be logged in to update an address.');
       return;
     }
     
@@ -148,10 +151,10 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setAddresses(prevAddresses => 
         prevAddresses.map(addr => addr.id === id ? { ...addr, ...address } : addr)
       );
-      toast.success('Address updated successfully.');
+      showModal('success', 'Address updated successfully.');
     } catch (error) {
       console.error('Error updating address:', error);
-      toast.error('Failed to update address.');
+      showModal('error', 'Failed to update address.');
       throw error;
     } finally {
       setLoading(false);
@@ -160,7 +163,7 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const deleteUserAddress = async (id: string) => {
     if (!user) {
-      toast.error('You must be logged in to delete an address.');
+      showModal('error', 'You must be logged in to delete an address.');
       return;
     }
     
@@ -169,10 +172,10 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
       await deleteAddress(id);
       // Update local state
       setAddresses(prevAddresses => prevAddresses.filter(addr => addr.id !== id));
-      toast.success('Address deleted successfully.');
+      showModal('success', 'Address deleted successfully.');
     } catch (error) {
       console.error('Error deleting address:', error);
-      toast.error('Failed to delete address.');
+      showModal('error', 'Failed to delete address.');
       throw error;
     } finally {
       setLoading(false);
@@ -193,7 +196,7 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const addProductToWishlist = async (productId: string, priority = 0, notes = '') => {
     if (!user) {
-      toast.error('You must be logged in to add to wishlist.');
+      showModal('error', 'You must be logged in to add to wishlist.');
       return;
     }
     
@@ -201,10 +204,10 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setLoading(true);
       await addToWishlist(productId, priority, notes);
       await refreshWishlist();
-      toast.success('Product added to wishlist.');
+      showModal('success', 'Product added to wishlist.');
     } catch (error) {
       console.error('Error adding to wishlist:', error);
-      toast.error('Failed to add product to wishlist.');
+      showModal('error', 'Failed to add product to wishlist.');
       throw error;
     } finally {
       setLoading(false);
@@ -213,7 +216,7 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const removeProductFromWishlist = async (productId: string) => {
     if (!user) {
-      toast.error('You must be logged in to remove from wishlist.');
+      showModal('error', 'You must be logged in to remove from wishlist.');
       return;
     }
     
@@ -222,10 +225,10 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
       await removeFromWishlist(productId);
       // Update local state
       setWishlist(prevWishlist => prevWishlist.filter(item => item.product_id !== productId));
-      toast.success('Product removed from wishlist.');
+      showModal('success', 'Product removed from wishlist.');
     } catch (error) {
       console.error('Error removing from wishlist:', error);
-      toast.error('Failed to remove product from wishlist.');
+      showModal('error', 'Failed to remove product from wishlist.');
       throw error;
     } finally {
       setLoading(false);
@@ -237,7 +240,7 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
     updates: { priority?: number, notes?: string }
   ) => {
     if (!user) {
-      toast.error('You must be logged in to update wishlist items.');
+      showModal('error', 'You must be logged in to update wishlist items.');
       return;
     }
     
@@ -250,10 +253,10 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
           item.product_id === productId ? { ...item, ...updates } : item
         )
       );
-      toast.success('Wishlist item updated.');
+      showModal('success', 'Wishlist item updated.');
     } catch (error) {
       console.error('Error updating wishlist item:', error);
-      toast.error('Failed to update wishlist item.');
+      showModal('error', 'Failed to update wishlist item.');
       throw error;
     } finally {
       setLoading(false);
@@ -263,7 +266,7 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // User preferences operations
   const updateUserPrefs = async (prefs: Partial<UserPreferences>) => {
     if (!user) {
-      toast.error('You must be logged in to update preferences.');
+      showModal('error', 'You must be logged in to update preferences.');
       return;
     }
     
@@ -271,10 +274,10 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setLoading(true);
       const updatedPreferences = await updateUserPreferences(prefs);
       setPreferences(updatedPreferences);
-      toast.success('Preferences updated successfully.');
+      showModal('success', 'Preferences updated successfully.');
     } catch (error) {
       console.error('Error updating preferences:', error);
-      toast.error('Failed to update preferences.');
+      showModal('error', 'Failed to update preferences.');
       throw error;
     } finally {
       setLoading(false);
@@ -306,6 +309,14 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }}
     >
       {children}
+      {modal.open && (
+        <Modal
+          open={modal.open}
+          type={modal.type}
+          message={modal.message}
+          onClose={() => setModal({ ...modal, open: false })}
+        />
+      )}
     </ProfileContext.Provider>
   );
 };

@@ -57,10 +57,11 @@ export const updateProfile = async (profile: Partial<Profile>): Promise<Profile>
     }
     
     const userId = userData.user.id;
+    const email = userData.user.email;
     
     const { data, error } = await supabase
       .from('profiles')
-      .update(profile)
+      .update({ ...profile, email })
       .eq('id', userId)
       .select()
       .single();
@@ -68,6 +69,13 @@ export const updateProfile = async (profile: Partial<Profile>): Promise<Profile>
     if (error) {
       console.error('Error updating profile:', error);
       throw error;
+    }
+
+    // Encourage users to set their full name if not set
+    if (!data.full_name) {
+      import('react-hot-toast').then(({ toast }) => {
+        toast('Please set your full name in your profile for a better experience!', { icon: 'ℹ️' });
+      });
     }
 
     return data;

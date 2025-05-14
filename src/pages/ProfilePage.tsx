@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { User, Settings, Heart, MapPin, Lock, Phone, Mail, Save, Edit, Trash, Plus, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -69,6 +69,8 @@ const ProfilePage: React.FC = () => {
   const [editMode, setEditMode] = useState(false);
   const [addingAddress, setAddingAddress] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
+  const [showProfilePrompt, setShowProfilePrompt] = useState(false);
+  const editSectionRef = useRef<HTMLDivElement>(null);
   
   // Initialize profile form when profile data loads
   useEffect(() => {
@@ -77,6 +79,18 @@ const ProfilePage: React.FC = () => {
         fullName: profile.full_name || '',
         phone: profile.phone || ''
       });
+    }
+  }, [profile]);
+  
+  // Show prompt if full_name or phone is missing
+  useEffect(() => {
+    if (profile && (!profile.full_name || !profile.phone)) {
+      setShowProfilePrompt(true);
+      // Optionally scroll to edit section
+      setEditMode(true);
+      setTimeout(() => {
+        editSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 200);
     }
   }, [profile]);
   
@@ -204,6 +218,19 @@ const ProfilePage: React.FC = () => {
     <div className="min-h-screen pt-32 pb-12">
       <div className="container-custom">
         <div className="bg-white dark:bg-light-navy rounded-lg shadow-lg overflow-hidden relative">
+          {showProfilePrompt && (
+            <div className="bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200 px-6 py-4 text-center text-sm font-medium flex items-center justify-between">
+              <span>
+                Please complete your profile by providing your full name and phone number.
+              </span>
+              <button
+                className="ml-4 px-3 py-1 rounded bg-yellow-200 dark:bg-yellow-800 text-yellow-900 dark:text-yellow-100 hover:bg-yellow-300 dark:hover:bg-yellow-700"
+                onClick={() => setShowProfilePrompt(false)}
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
           {loading && (
             <div className="absolute inset-0 bg-black/10 dark:bg-black/20 flex items-center justify-center z-10">
               <LoaderSpinner size="lg" color="blue" />
@@ -859,6 +886,7 @@ const ProfilePage: React.FC = () => {
               )}
             </div>
           </div>
+          <div ref={editSectionRef} />
         </div>
       </div>
     </div>

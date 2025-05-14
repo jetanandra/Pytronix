@@ -9,13 +9,7 @@ export const getProductReviews = async (productId: string): Promise<ProductRevie
   try {
     const { data, error } = await supabase
       .from('product_reviews')
-      .select(`
-        *,
-        user:user_id(
-          id,
-          email
-        )
-      `)
+      .select('*')
       .eq('product_id', productId)
       .order('created_at', { ascending: false });
 
@@ -31,7 +25,7 @@ export const getProductReviews = async (productId: string): Promise<ProductRevie
           try {
             const { data: profileData } = await supabase
               .from('profiles')
-              .select('full_name, profile_picture')
+              .select('full_name, profile_picture, email')
               .eq('id', review.user_id)
               .single();
               
@@ -41,7 +35,8 @@ export const getProductReviews = async (productId: string): Promise<ProductRevie
                 user: {
                   ...review.user,
                   full_name: profileData.full_name,
-                  profile_picture: profileData.profile_picture
+                  profile_picture: profileData.profile_picture,
+                  email: profileData.email
                 }
               };
             }
@@ -67,13 +62,7 @@ export const getAllReviews = async (): Promise<ProductReview[]> => {
   try {
     const { data, error } = await supabase
       .from('product_reviews')
-      .select(`
-        *,
-        user:user_id(
-          id,
-          email
-        )
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -88,7 +77,7 @@ export const getAllReviews = async (): Promise<ProductReview[]> => {
           try {
             const { data: profileData } = await supabase
               .from('profiles')
-              .select('full_name, profile_picture')
+              .select('full_name, profile_picture, email')
               .eq('id', review.user_id)
               .single();
               
@@ -98,7 +87,8 @@ export const getAllReviews = async (): Promise<ProductReview[]> => {
                 user: {
                   ...review.user,
                   full_name: profileData.full_name,
-                  profile_picture: profileData.profile_picture
+                  profile_picture: profileData.profile_picture,
+                  email: profileData.email
                 }
               };
             }

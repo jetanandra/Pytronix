@@ -8,7 +8,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, name: string, phone: string) => Promise<void>;
   signOut: () => Promise<void>;
   error: string | null;
 }
@@ -57,12 +57,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       setError(null);
       
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error, data } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) {
         setError(error.message);
         toast.error(error.message);
         return;
+      }
+      
+      // After successful login, sync user_metadata to profiles if missing or incomplete
+      const user = data?.user || (await supabase.auth.getUser()).data?.user;
+      if (user) {
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        const meta = user.user_metadata || {};
+        // If profile is missing or missing fields, upsert with user_metadata
+        if (!profile || !profile.full_name || !profile.phone) {
+          await supabase.from('profiles').upsert({
+            id: user.id,
+            full_name: meta.full_name || profile?.full_name || '',
+            phone: meta.phone || profile?.phone || '',
+            email: user.email
+          });
+        }
       }
       
       toast.success('Signed in successfully!');
@@ -76,19 +92,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, name: string, phone: string) => {
     try {
       setLoading(true);
       setError(null);
       
-      const { error } = await supabase.auth.signUp({ email, password });
-      
+      // Pass name and phone as user_metadata
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: name,
+            phone: phone
+          }
+        }
+      });
       if (error) {
         setError(error.message);
         toast.error(error.message);
         return;
       }
-      
+      // Insert name and phone into profiles table if registration succeeded
+      if (data.user) {
+        await supabase.from('profiles').upsert({
+          id: data.user.id,
+          full_name: name,
+          phone: phone,
+          email: email
+        });
+      }
       toast.success('Signup successful! Please check your email for confirmation.');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';

@@ -5,6 +5,7 @@ import { createReview, updateReview, checkVerifiedPurchase } from '../../service
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import LoaderSpinner from '../ui/LoaderSpinner';
+import Modal from '../ui/Modal';
 
 interface ReviewFormProps {
   productId: string;
@@ -21,6 +22,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, existingReview, onSu
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [isVerifiedPurchase, setIsVerifiedPurchase] = useState(existingReview?.is_verified_purchase || false);
+  const [modal, setModal] = useState<{ open: boolean; type: 'error' | 'info' | 'success' | 'warning'; message: string }>({ open: false, type: 'info', message: '' });
   
   // Check if the user has purchased the product
   useEffect(() => {
@@ -45,12 +47,12 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, existingReview, onSu
     e.preventDefault();
     
     if (!user) {
-      toast.error('You must be logged in to submit a review');
+      setModal({ open: true, type: 'error', message: 'You must be logged in to submit a review' });
       return;
     }
     
     if (!content.trim()) {
-      toast.error('Please write a review');
+      setModal({ open: true, type: 'warning', message: 'Please write a review' });
       return;
     }
     
@@ -63,7 +65,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, existingReview, onSu
           title: title.trim() || null,
           content: content.trim()
         });
-        toast.success('Review updated successfully');
+        setModal({ open: true, type: 'success', message: 'Review updated successfully' });
       } else {
         await createReview({
           product_id: productId,
@@ -72,14 +74,14 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, existingReview, onSu
           content: content.trim(),
           is_verified_purchase: isVerifiedPurchase
         });
-        toast.success('Review submitted successfully');
+        setModal({ open: true, type: 'success', message: 'Review submitted successfully' });
       }
       
       onSubmitSuccess();
     } catch (error) {
       console.error('Error submitting review:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to submit review';
-      toast.error(errorMessage);
+      setModal({ open: true, type: 'error', message: errorMessage });
     } finally {
       setSubmitting(false);
     }
@@ -176,6 +178,14 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId, existingReview, onSu
           {submitting ? <LoaderSpinner size="sm" color="blue" /> : existingReview ? 'Update Review' : 'Submit Review'}
         </button>
       </div>
+      {modal.open && (
+        <Modal
+          open={modal.open}
+          type={modal.type}
+          message={modal.message}
+          onClose={() => setModal({ ...modal, open: false })}
+        />
+      )}
     </form>
   );
 };

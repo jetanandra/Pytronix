@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getAllReviews, deleteReview } from '../../services/reviewService';
 import { ProductReview } from '../../types';
-import { Star, Trash, CheckCircle, ExternalLink, Search, Filter } from 'lucide-react';
+import { Star, Trash, CheckCircle, ExternalLink, Search, Filter, Copy } from 'lucide-react';
 import LoaderSpinner from '../../components/ui/LoaderSpinner';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
@@ -50,8 +50,14 @@ const ReviewManagementPage: React.FC = () => {
   // Function to extract email username or get display name
   const getDisplayName = (review: ProductReview) => {
     if (review.user?.full_name) return review.user.full_name;
-    if (review.user?.email) return review.user.email.split('@')[0];
+    if (review.user?.email) return review.user.email;
+    if (review.user_id) return review.user_id.substring(0, 8) + '...';
     return "Anonymous User";
+  };
+  
+  const handleCopyUserId = (userId: string) => {
+    navigator.clipboard.writeText(userId);
+    toast.success('User ID copied to clipboard!');
   };
   
   const filteredReviews = reviews.filter(review => {
@@ -187,9 +193,24 @@ const ReviewManagementPage: React.FC = () => {
                       </Link>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
+                      <div className="flex flex-col items-start">
                         <div className="text-sm font-medium text-gray-900 dark:text-white">
                           {getDisplayName(review)}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                          {review.user_id ? (
+                            <>
+                              ID: {review.user_id.substring(0, 8)}...
+                              <button
+                                className="ml-1 p-1 rounded hover:bg-gray-200 dark:hover:bg-dark-navy"
+                                title="Copy full User ID"
+                                onClick={() => handleCopyUserId(review.user_id)}
+                                type="button"
+                              >
+                                <Copy className="w-3.5 h-3.5 text-gray-400 hover:text-neon-blue" />
+                              </button>
+                            </>
+                          ) : ''}
                         </div>
                         {review.is_verified_purchase && (
                           <CheckCircle className="w-4 h-4 ml-1.5 text-green-500" />
@@ -227,7 +248,7 @@ const ReviewManagementPage: React.FC = () => {
                         className="text-red-600 hover:text-red-900 dark:hover:text-red-400"
                       >
                         {deletingReviewId === review.id ? (
-                          <LoaderSpinner size="sm" color="red" />
+                          <LoaderSpinner size="sm" color="blue" />
                         ) : (
                           <Trash className="w-5 h-5" />
                         )}

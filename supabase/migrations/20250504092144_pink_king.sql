@@ -241,3 +241,9 @@ CREATE TRIGGER on_auth_user_created
 AFTER INSERT ON auth.users
 FOR EACH ROW
 EXECUTE FUNCTION public.handle_new_user();
+
+-- Allow public read access to reviewer info for reviews
+CREATE POLICY "Public can view reviewer info"
+  ON profiles
+  FOR SELECT
+  USING (true);

@@ -4,6 +4,8 @@ import { ShoppingCart, Heart, Star, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Product } from '../../types';
 import { useCart } from '../../context/CartContext';
+import { useProfile } from '../../context/ProfileContext';
+import { toast } from 'react-hot-toast';
 
 interface ProductCardProps {
   product: Product;
@@ -11,6 +13,30 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart } = useCart();
+  const { wishlist, addProductToWishlist, removeProductFromWishlist, loading } = useProfile();
+  const [wishlistLoading, setWishlistLoading] = React.useState(false);
+
+  // Check if product is in wishlist
+  const isWishlisted = wishlist.some(item => item.product_id === product.id);
+
+  const handleWishlistToggle = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setWishlistLoading(true);
+    try {
+      if (isWishlisted) {
+        await removeProductFromWishlist(product.id);
+        toast.success('Removed from wishlist');
+      } else {
+        await addProductToWishlist(product.id);
+        toast.success('Added to wishlist');
+      }
+    } catch (error) {
+      toast.error('Failed to update wishlist');
+    } finally {
+      setWishlistLoading(false);
+    }
+  };
   
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -43,10 +69,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           />
           <div className="absolute top-2 right-2 flex flex-col gap-2">
             <button 
-              className="p-2 bg-white/80 dark:bg-dark-navy/80 rounded-full hover:bg-white dark:hover:bg-dark-navy transition-all"
-              aria-label="Add to wishlist"
+              className={`p-2 bg-white/80 dark:bg-dark-navy/80 rounded-full hover:bg-white dark:hover:bg-dark-navy transition-all ${wishlistLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+              onClick={handleWishlistToggle}
+              disabled={wishlistLoading}
             >
-              <Heart className="w-5 h-5 text-gray-600 dark:text-soft-gray hover:text-red-500 dark:hover:text-red-500 transition-colors" />
+              <Heart className={`w-5 h-5 ${isWishlisted ? 'text-red-500 fill-red-500' : 'text-gray-600 dark:text-soft-gray'} transition-colors`} />
             </button>
           </div>
           

@@ -30,7 +30,7 @@ interface AddressFormState {
 }
 
 const ProfilePage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { 
     profile, 
     addresses, 
@@ -40,7 +40,8 @@ const ProfilePage: React.FC = () => {
     addUserAddress,
     updateUserAddress,
     deleteUserAddress,
-    removeProductFromWishlist
+    removeProductFromWishlist,
+    deleteUserAccount
   } = useProfile();
   
   const [activeTab, setActiveTab] = useState<'personal' | 'password' | 'addresses' | 'wishlist'>('personal');
@@ -71,6 +72,9 @@ const ProfilePage: React.FC = () => {
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
   const [showProfilePrompt, setShowProfilePrompt] = useState(false);
   const editSectionRef = useRef<HTMLDivElement>(null);
+  
+  const [wishlistState, setWishlistState] = useState(wishlist);
+  useEffect(() => { setWishlistState(wishlist); }, [wishlist]);
   
   // Initialize profile form when profile data loads
   useEffect(() => {
@@ -192,10 +196,26 @@ const ProfilePage: React.FC = () => {
   };
   
   const handleRemoveFromWishlist = async (productId: string) => {
+    // Optimistically update local state
+    setWishlistState(prev => prev.filter(item => item.product_id !== productId));
     try {
       await removeProductFromWishlist(productId);
+      toast.success('Removed from wishlist');
     } catch (error) {
-      console.error('Error removing from wishlist:', error);
+      toast.error('Failed to remove from wishlist');
+    }
+  };
+  
+  // Add handler for account deletion
+  const handleDeleteAccount = async () => {
+    if (!window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) return;
+    try {
+      await deleteUserAccount();
+      await signOut();
+      toast.success('Your account has been deleted.');
+      window.location.href = '/';
+    } catch (error) {
+      toast.error('Failed to delete account.');
     }
   };
   
@@ -417,6 +437,18 @@ const ProfilePage: React.FC = () => {
                       )}
                     </div>
                   </form>
+                  {/* Delete Account Button */}
+                  <div className="mt-8 flex justify-end">
+                    <button
+                      type="button"
+                      className="flex items-center px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition disabled:opacity-50"
+                      onClick={handleDeleteAccount}
+                      disabled={loading}
+                    >
+                      <Trash className="w-4 h-4 mr-2" />
+                      Delete Account
+                    </button>
+                  </div>
                 </motion.div>
               )}
               
@@ -853,7 +885,7 @@ const ProfilePage: React.FC = () => {
                     My Wishlist
                   </h2>
                   
-                  {wishlist.length === 0 ? (
+                  {wishlistState.length === 0 ? (
                     <div className="text-center py-12 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
                       <Heart className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                       <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
@@ -868,7 +900,7 @@ const ProfilePage: React.FC = () => {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                      {wishlist.map(item => (
+                      {wishlistState.map(item => (
                         <div key={item.id} className="relative group">
                           <button
                             onClick={() => handleRemoveFromWishlist(item.product_id)}

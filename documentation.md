@@ -1,5 +1,6 @@
 # Pytronix E-commerce Technical Documentation
 
+
 ## Overview
 Pytronix is a full-featured e-commerce platform for selling electronics and IoT components. The application provides a modern, responsive user interface with comprehensive product browsing, user management, wishlist functionality, and an admin panel for product and order management. Built with React, TypeScript, and Supabase, the platform offers a complete solution for online electronics retail.
 
@@ -514,3 +515,53 @@ The application is configured for deployment to Netlify.
   - Add skeleton loaders for slow data fetches.
   - Improve accessibility (ARIA, keyboard navigation).
   - Add user feedback for all async actions (toasts, spinners).
+
+
+---
+
+## Changelog & Major Technical Updates
+
+### Initial Project Setup
+- **Project Bootstrapping**: Initialized with React 18, TypeScript, Vite, Tailwind CSS, and Supabase as the backend (PostgreSQL).
+- **Folder Structure**: Established a modular structure with `components`, `context`, `services`, `types`, `pages`, and `supabase` for migrations and edge functions.
+- **Supabase Integration**: Configured Supabase client, authentication, and database migrations for core e-commerce tables (products, users, orders, etc.).
+
+### Core Features Implemented
+- **Authentication**: Email/password login and registration using Supabase Auth, with context-based state management.
+- **Profile Management**: Automated profile creation via DB triggers; profile editing UI; RLS policies to restrict profile access to owners.
+- **Product Catalog**: CRUD for products, category management, product detail pages, and responsive product listing with filtering and search.
+- **Cart & Checkout**: Cart context with localStorage persistence, order summary, and checkout flow (pre-payment integration).
+- **Admin Panel**: Role-based access for admin dashboard, product management, and user management, with admin role assignment via Edge Function.
+
+### Review & Rating System
+- **Review Submission**: Users can submit, edit, and delete reviews for products. Each review is linked to a user profile.
+- **Verified Purchase Reviews**: Logic to mark reviews as 'verified purchase' if the user has bought the product.
+- **Review Display**: Product pages show all reviews, sorted by verified status, helpful votes, and recency.
+- **Helpful Votes**: Users can mark reviews as helpful (one vote per user per review).
+- **Admin Review Management**: Admins can view, search, filter, and delete any review from a dedicated admin page.
+
+### User Profile Visibility & RLS
+- **Initial RLS Policy**: Profiles table was protected by RLS, allowing only users to view their own profile. This caused reviewer names to show as 'Anonymous User' for all but the logged-in user.
+- **Bug Fix**: Added a public read policy to the `profiles` table for reviewer info, allowing all users (even logged out) to see reviewer names and profile pictures on reviews. This was implemented via a new RLS policy:
+  ```sql
+  CREATE POLICY "Public can view reviewer info"
+    ON profiles
+    FOR SELECT
+    USING (true);
+  ```
+- **Frontend Logic**: No frontend changes were needed; the review display logic automatically started showing names once the policy was applied.
+
+### Additional Enhancements
+- **Registration Improvements**: Registration form updated to collect name and phone number, syncing these fields to the `profiles` table.
+- **Profile Completion Prompt**: After first login, users are prompted to complete their profile if name/phone is missing.
+- **Admin User Management**: Admins can view user IDs, names, and emails, with copy-to-clipboard functionality for user IDs.
+- **Order & Wishlist System**: Full support for order placement, order item management, and wishlists, all protected by RLS.
+- **Category System**: Categories table with admin CRUD, product-category linking, and UI filtering.
+- **UI/UX**: Responsive design, dark mode, consistent button styles, and improved accessibility.
+
+### Security & Best Practices
+- **RLS Everywhere**: All sensitive tables (profiles, orders, addresses, wishlists) are protected by Row Level Security, with policies for owner-only access and admin overrides where needed.
+- **Edge Functions**: Used for admin role assignment and user management, leveraging Supabase service role keys securely.
+- **Migration Management**: All schema and policy changes are tracked via SQL migrations in the `supabase/migrations` directory.
+
+---

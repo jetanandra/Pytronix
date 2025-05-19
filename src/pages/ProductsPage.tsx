@@ -20,6 +20,7 @@ const ProductsPage: React.FC = () => {
   const [sortBy, setSortBy] = useState('popularity');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [minRating, setMinRating] = useState<number | null>(null);
   
   // Fetch products and categories from Supabase
   useEffect(() => {
@@ -67,6 +68,11 @@ const ProductsPage: React.FC = () => {
       return price >= priceRange.min && price <= priceRange.max;
     });
     
+    // Filter by rating
+    if (minRating !== null) {
+      filtered = filtered.filter(p => (p.rating || 0) >= minRating);
+    }
+    
     // Sort products
     switch (sortBy) {
       case 'price-low':
@@ -76,11 +82,16 @@ const ProductsPage: React.FC = () => {
         filtered.sort((a, b) => (b.discount_price || b.price) - (a.discount_price || a.price));
         break;
       case 'newest':
-        // Sort by created_at date if available
         filtered.sort((a, b) => {
           if (!a.created_at || !b.created_at) return 0;
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         });
+        break;
+      case 'rating-high':
+        filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        break;
+      case 'rating-low':
+        filtered.sort((a, b) => (a.rating || 0) - (b.rating || 0));
         break;
       case 'popularity':
       default:
@@ -89,7 +100,7 @@ const ProductsPage: React.FC = () => {
     }
     
     setFilteredProducts(filtered);
-  }, [searchQuery, selectedCategory, priceRange, sortBy, products]);
+  }, [searchQuery, selectedCategory, priceRange, minRating, sortBy, products]);
   
   // Handle category change from URL params on component mount
   useEffect(() => {
@@ -156,6 +167,8 @@ const ProductsPage: React.FC = () => {
                 <option value="price-low">Price: Low to High</option>
                 <option value="price-high">Price: High to Low</option>
                 <option value="newest">Newest</option>
+                <option value="rating-high">Rating: High to Low</option>
+                <option value="rating-low">Rating: Low to High</option>
               </select>
             </div>
           </div>
@@ -209,6 +222,23 @@ const ProductsPage: React.FC = () => {
                     onChange={(e) => setPriceRange({ ...priceRange, max: parseInt(e.target.value) })}
                     className="w-full"
                   />
+                </div>
+              </div>
+              
+              {/* Rating Filter */}
+              <div className="mt-6">
+                <h4 className="font-medium text-gray-900 dark:text-white mb-2">Minimum Rating</h4>
+                <div className="flex flex-wrap gap-2">
+                  {[5, 4, 3, 2, 1].map(star => (
+                    <button
+                      key={star}
+                      onClick={() => setMinRating(star === minRating ? null : star)}
+                      className={`px-2 py-1 rounded border text-sm flex items-center space-x-1 ${minRating === star ? 'bg-neon-blue text-white border-neon-blue' : 'bg-white dark:bg-dark-navy border-gray-300 dark:border-gray-700 text-gray-700 dark:text-soft-gray hover:bg-neon-blue/10'}`}
+                      aria-label={`Show ${star}+ stars`}
+                    >
+                      <span>{'★'.repeat(star)}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -266,6 +296,23 @@ const ProductsPage: React.FC = () => {
                     onChange={(e) => setPriceRange({ ...priceRange, max: parseInt(e.target.value) })}
                     className="w-full"
                   />
+                </div>
+              </div>
+              
+              {/* Rating Filter */}
+              <div className="mt-6">
+                <h4 className="font-medium text-gray-900 dark:text-white mb-2">Minimum Rating</h4>
+                <div className="flex flex-wrap gap-2">
+                  {[5, 4, 3, 2, 1].map(star => (
+                    <button
+                      key={star}
+                      onClick={() => setMinRating(star === minRating ? null : star)}
+                      className={`px-2 py-1 rounded border text-sm flex items-center space-x-1 ${minRating === star ? 'bg-neon-blue text-white border-neon-blue' : 'bg-white dark:bg-dark-navy border-gray-300 dark:border-gray-700 text-gray-700 dark:text-soft-gray hover:bg-neon-blue/10'}`}
+                      aria-label={`Show ${star}+ stars`}
+                    >
+                      <span>{'★'.repeat(star)}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>

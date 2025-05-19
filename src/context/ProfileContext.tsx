@@ -11,7 +11,8 @@ import {
   removeFromWishlist,
   updateWishlistItem,
   updateUserPreferences,
-  subscribeToWishlistChanges
+  subscribeToWishlistChanges,
+  deleteUserAccount as deleteUserAccountService
 } from '../services/profileService';
 import Modal from '../components/ui/Modal';
 
@@ -30,6 +31,7 @@ interface ProfileContextType {
   updateWishlistItemDetails: (productId: string, updates: { priority?: number, notes?: string }) => Promise<void>;
   updateUserPrefs: (prefs: Partial<UserPreferences>) => Promise<void>;
   refreshProfileData: () => Promise<void>;
+  deleteUserAccount: () => Promise<void>;
 }
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
@@ -199,9 +201,13 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
       showModal('error', 'You must be logged in to add to wishlist.');
       return;
     }
-    
     try {
       setLoading(true);
+      // Optimistically update local state
+      setWishlist(prevWishlist => [
+        ...prevWishlist,
+        { id: Math.random().toString(), product_id: productId, user_id: user.id, priority, notes, created_at: new Date().toISOString(), product: undefined }
+      ]);
       await addToWishlist(productId, priority, notes);
       await refreshWishlist();
       showModal('success', 'Product added to wishlist.');
@@ -289,6 +295,29 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
     await loadUserData();
   };
 
+  // Delete user account
+  const deleteUserAccount = async () => {
+    if (!user) {
+      showModal('error', 'You must be logged in to delete your account.');
+      return;
+    }
+    try {
+      setLoading(true);
+      await deleteUserAccountService();
+      setProfile(null);
+      setAddresses([]);
+      setWishlist([]);
+      setPreferences(null);
+      showModal('success', 'Your account has been deleted.');
+    } catch (error) {
+      console.error('Error deleting user account:', error);
+      showModal('error', 'Failed to delete account.');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <ProfileContext.Provider
       value={{
@@ -305,7 +334,8 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
         removeProductFromWishlist,
         updateWishlistItemDetails,
         updateUserPrefs,
-        refreshProfileData
+        refreshProfileData,
+        deleteUserAccount
       }}
     >
       {children}

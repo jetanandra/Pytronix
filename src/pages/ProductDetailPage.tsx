@@ -19,7 +19,7 @@ const ProductDetailPage: React.FC = () => {
   const location = useLocation();
   const { addToCart } = useCart();
   const { user } = useAuth();
-  const { addProductToWishlist } = useProfile();
+  const { addProductToWishlist, removeProductFromWishlist, wishlist } = useProfile();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +35,9 @@ const ProductDetailPage: React.FC = () => {
   const [editingReview, setEditingReview] = useState<ProductReview | null>(null);
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [userReview, setUserReview] = useState<ProductReview | null>(null);
+  
+  // Wishlist state
+  const [wishlistLoading, setWishlistLoading] = useState(false);
   
   useEffect(() => {
     const fetchProduct = async () => {
@@ -108,6 +111,9 @@ const ProductDetailPage: React.FC = () => {
     }
   }, [location.hash]);
 
+  // Check if product is in wishlist
+  const isWishlisted = product ? wishlist.some(item => item.product_id === product.id) : false;
+
   const handleAddToCart = () => {
     if (product) {
       addToCart(product, quantity);
@@ -115,20 +121,25 @@ const ProductDetailPage: React.FC = () => {
     }
   };
 
-  const handleAddToWishlist = async () => {
+  const handleWishlistToggle = async () => {
     if (!user) {
-      toast.error('Please sign in to add items to your wishlist');
+      toast.error('Please sign in to use your wishlist');
       return;
     }
-    
-    if (product) {
-      try {
+    if (!product) return;
+    setWishlistLoading(true);
+    try {
+      if (isWishlisted) {
+        await removeProductFromWishlist(product.id);
+        toast.success('Removed from wishlist');
+      } else {
         await addProductToWishlist(product.id);
-        toast.success(`${product.name} added to wishlist`);
-      } catch (err) {
-        toast.error('Failed to add to wishlist');
-        console.error(err);
+        toast.success('Added to wishlist');
       }
+    } catch (error) {
+      toast.error('Failed to update wishlist');
+    } finally {
+      setWishlistLoading(false);
     }
   };
 
@@ -436,13 +447,13 @@ const ProductDetailPage: React.FC = () => {
                 <ShoppingCart className="w-5 h-5 mr-2" />
                 {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
               </button>
-              
               <button
-                onClick={handleAddToWishlist}
-                className="flex-1 sm:flex-none px-6 py-2 border-2 border-neon-blue text-neon-blue hover:bg-neon-blue/10 rounded-lg flex items-center justify-center transition-colors"
+                onClick={handleWishlistToggle}
+                className={`flex-1 sm:flex-none px-6 py-2 border-2 rounded-lg flex items-center justify-center transition-colors ${isWishlisted ? 'bg-red-50 border-red-500 text-red-600' : 'border-neon-blue text-neon-blue hover:bg-neon-blue/10'} ${wishlistLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={wishlistLoading}
               >
-                <Heart className="w-5 h-5 mr-2" />
-                Wishlist
+                <Heart className={`w-5 h-5 mr-2 ${isWishlisted ? 'fill-red-500 text-red-500' : ''}`} />
+                {isWishlisted ? 'Wishlisted' : 'Wishlist'}
               </button>
             </div>
             

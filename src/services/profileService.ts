@@ -495,3 +495,27 @@ export const subscribeToWishlistChanges = (callback: (payload: any) => void) => 
     )
     .subscribe();
 };
+
+// Delete user account and all related data
+export const deleteUserAccount = async (): Promise<void> => {
+  try {
+    // Get current user
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError) throw userError;
+    if (!userData?.user?.id) throw new Error('No user ID found.');
+    const userId = userData.user.id;
+
+    // Delete related data (order matters for foreign keys)
+    await supabase.from('addresses').delete().eq('user_id', userId);
+    await supabase.from('wishlists').delete().eq('user_id', userId);
+    await supabase.from('user_preferences').delete().eq('user_id', userId);
+    await supabase.from('profiles').delete().eq('id', userId);
+
+    // Delete user from auth
+    const { error: deleteError } = await supabase.auth.admin.deleteUser(userId);
+    if (deleteError) throw deleteError;
+  } catch (error) {
+    console.error('Error deleting user account:', error);
+    throw error;
+  }
+};

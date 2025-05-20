@@ -5,14 +5,14 @@ const AboutUsPage: React.FC = () => (
     <div className="mb-12 text-center">
       <h1 className="text-4xl font-bold mb-4 text-neon-blue font-orbitron">About Us</h1>
       <p className="text-lg text-gray-600 dark:text-soft-gray max-w-2xl mx-auto">
-        Pytronix is dedicated to empowering makers, engineers, and innovators with the best electronics and IoT components. Our mission is to make technology accessible, affordable, and inspiring for everyone.
+        Phytronix is dedicated to empowering makers, engineers, and innovators with the best electronics and IoT components. Our mission is to make technology accessible, affordable, and inspiring for everyone.
       </p>
     </div>
     <div className="grid md:grid-cols-2 gap-12 mb-16">
       <div>
         <h2 className="text-2xl font-semibold mb-2 text-gray-900 dark:text-white">Our Story</h2>
         <p className="text-gray-600 dark:text-soft-gray">
-          Founded by passionate engineers, Pytronix started as a small project to help students and hobbyists find quality components. Today, we serve thousands of customers, supporting projects from classrooms to startups.
+          Founded by passionate engineers, Phytronix started as a small project to help students and hobbyists find quality components. Today, we serve thousands of customers, supporting projects from classrooms to startups.
         </p>
       </div>
       <div>

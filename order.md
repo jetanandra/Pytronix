@@ -1,6 +1,6 @@
 # Order Processing & Razorpay Integration
 
-This document provides a comprehensive overview of the order processing system and Razorpay payment integration in the Pytronix e-commerce platform. It's designed to help new developers understand the workflow, components, and how to maintain or extend the system.
+This document provides a comprehensive overview of the order processing system and Razorpay payment integration in the Phytronix e-commerce platform. It's designed to help new developers understand the workflow, components, and how to maintain or extend the system.
 
 ## Table of Contents
 
@@ -15,7 +15,7 @@ This document provides a comprehensive overview of the order processing system a
 
 ## Order System Overview
 
-The Pytronix order system is a complete end-to-end solution that manages the lifecycle of customer orders from cart checkout through payment processing to order fulfillment. It supports two payment methods:
+The Phytronix order system is a complete end-to-end solution that manages the lifecycle of customer orders from cart checkout through payment processing to order fulfillment. It supports two payment methods:
 
 1. Cash on Delivery (COD)
 2. Online Payment via Razorpay
@@ -137,7 +137,7 @@ Admins can update order status through the admin interface:
 
 ## Razorpay Integration
 
-The Pytronix platform integrates with Razorpay to process online payments securely. The integration has been architected to ensure security by handling sensitive operations in Edge Functions rather than exposing API keys in the frontend.
+The Phytronix platform integrates with Razorpay to process online payments securely. The integration has been architected to ensure security by handling sensitive operations in Edge Functions rather than exposing API keys in the frontend.
 
 ### Integration Architecture
 
@@ -196,7 +196,7 @@ const options = {
   key: razorpayKeyId,
   amount: Number(order.total) * 100, // converting to paise
   currency: 'INR',
-  name: 'Pytronix Electronics',
+  name: 'Phytronix Electronics',
   description: `Order #${order.id.substring(0, 8)}...`,
   order_id: razorpayOrderId,
   handler: async function(response) {
@@ -430,9 +430,9 @@ If you encounter CORS errors:
 
 ## Conclusion
 
-The Pytronix order system with Razorpay integration provides a secure and efficient way to handle customer orders and payments. By following this documentation, new developers should be able to understand, maintain, and extend the system as needed.
+The Phytronix order system with Razorpay integration provides a secure and efficient way to handle customer orders and payments. By following this documentation, new developers should be able to understand, maintain, and extend the system as needed.
 
 For additional questions or issues, refer to:
 1. [Razorpay API Documentation](https://razorpay.com/docs/api/)
 2. [Supabase Edge Functions Documentation](https://supabase.com/docs/guides/functions)
-3. [Pytronix Internal Docs](./documentation.md)
+3. [Phytronix Internal Docs](./documentation.md)

@@ -50,7 +50,7 @@ const LoginForm: React.FC = () => {
         </h1>
         <p className="text-gray-600 dark:text-soft-gray mt-2">
           {isSignUp 
-            ? 'Join the Pytronix community today' 
+            ? 'Join the Phytronix community today' 
             : 'Sign in to access your account'}
         </p>
       </div>

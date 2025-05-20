@@ -80,7 +80,7 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({ order, onSuccess, o
       key: order.payment_details.razorpay_key,
       amount: Number(order.total) * 100, // convert to paisa
       currency: 'INR',
-      name: 'Pytronix Electronics',
+      name: 'Phytronix Electronics',
       description: `Order #${order.id.substring(0, 8)}...`,
       image: 'https://via.placeholder.com/150x150.png?text=P',
       order_id: order.payment_details.razorpay_order_id,

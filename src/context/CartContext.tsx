@@ -110,13 +110,13 @@ const initialState: CartState = {
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Initialize cart from localStorage if available
   const [cart, dispatch] = useReducer(cartReducer, initialState, () => {
-    const savedCart = localStorage.getItem('pytronix-cart');
+    const savedCart = localStorage.getItem('phytronix-cart');
     return savedCart ? JSON.parse(savedCart) : initialState;
   });
   
   // Save cart to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem('pytronix-cart', JSON.stringify(cart));
+    localStorage.setItem('phytronix-cart', JSON.stringify(cart));
   }, [cart]);
   
   const addToCart = (product: Product, quantity: number) => {

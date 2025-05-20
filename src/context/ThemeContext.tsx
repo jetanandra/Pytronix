@@ -11,7 +11,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<Theme>(() => {
-    const savedTheme = localStorage.getItem('pytronix-theme');
+    const savedTheme = localStorage.getItem('phytronix-theme');
     // Check if user has set a preference in localStorage
     if (savedTheme === 'light' || savedTheme === 'dark') {
       return savedTheme;
@@ -26,7 +26,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     // Update localStorage
-    localStorage.setItem('pytronix-theme', theme);
+    localStorage.setItem('phytronix-theme', theme);
     
     // Update document class for Tailwind dark mode
     if (theme === 'dark') {

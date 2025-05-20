@@ -183,6 +183,31 @@ export const createOrder = async (orderDetails: OrderDetails, cartItems: any[] =
     // Generate a readable order ID (use first 8 chars of UUID)
     const order_id = data.id.substring(0, 8).toUpperCase();
     
+    // Fetch user email and name for the order
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('full_name, email')
+      .eq('id', session.user.id)
+      .single();
+    if (userProfile?.email) {
+      await sendOrderEmail({
+        to: userProfile.email,
+        type: 'order_received',
+        order: {
+          id: data.id,
+          customer_name: userProfile.full_name || '',
+          items: (cartItems || []).map((item: any) => ({
+            name: item.product?.name || '',
+            quantity: item.quantity,
+            price: item.product?.discount_price || item.product?.price || 0
+          })),
+          total: data.total,
+          status: data.status,
+          created_at: data.created_at
+        }
+      });
+    }
+
     return {
       id: data.id,
       order_id
@@ -241,6 +266,38 @@ export const updateOrderStatus = async (orderId: string, status: OrderStatus) =>
     if (error) {
       console.error('Error updating order status:', error);
       throw error;
+    }
+    
+    // Fetch order, user profile, and items
+    const { data: order } = await supabase
+      .from('orders')
+      .select('id, user_id, total, status, created_at, shipping_address, items:order_items(quantity, price, product:products(name))')
+      .eq('id', orderId)
+      .single();
+    if (order) {
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', order.user_id)
+        .single();
+      if (userProfile?.email) {
+        await sendOrderEmail({
+          to: userProfile.email,
+          type: status === 'shipped' ? 'order_shipped' : 'order_delivered',
+          order: {
+            id: order.id,
+            customer_name: userProfile.full_name || '',
+            items: (order.items || []).map((item: any) => ({
+              name: item.product && item.product.name ? item.product.name : '',
+              quantity: item.quantity,
+              price: item.price
+            })),
+            total: order.total,
+            status: order.status,
+            created_at: order.created_at
+          }
+        });
+      }
     }
     
     return true;
@@ -380,3 +437,31 @@ export const getOrderStatusCounts = async () => {
     };
   }
 };
+
+// Add helper to send transactional email via Supabase Edge Function
+interface SendOrderEmailArgs {
+  to: string;
+  type: 'order_received' | 'order_shipped' | 'order_delivered';
+  order: {
+    id: string;
+    customer_name: string;
+    items: { name: string; quantity: number; price: number }[];
+    total: number;
+    status: string;
+    created_at: string;
+    [key: string]: any;
+  };
+}
+async function sendOrderEmail({ to, type, order }: SendOrderEmailArgs) {
+  try {
+    await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-order-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to, type, order })
+    });
+  } catch (e) {
+    // Don't block order, just log
+    console.error('Failed to send transactional email:', e);
+    if (typeof toast === 'function') toast.error('Order email could not be sent');
+  }
+}

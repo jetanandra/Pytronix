@@ -73,24 +73,9 @@ const AppRoutes: React.FC = () => {
                 </AuthGuard>
               } />
               <Route path="/admin-setup" element={<AdminSetupPage />} />
-              <Route path="/admin/categories" element={
-                <AuthGuard>
-                  <AdminCategoryPage />
-                </AuthGuard>
-              } />
               <Route path="/admin/orders/:id" element={
                 <AuthGuard>
                   <OrderDetail />
-                </AuthGuard>
-              } />
-              <Route path="/admin/cancellations" element={
-                <AuthGuard>
-                  <OrderCancellationsPage />
-                </AuthGuard>
-              } />
-              <Route path="/admin/reviews" element={
-                <AuthGuard>
-                  <ReviewManagementPage />
                 </AuthGuard>
               } />
               <Route path="/about" element={<AboutUsPage />} />

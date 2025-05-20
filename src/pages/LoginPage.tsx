@@ -14,7 +14,7 @@ const LoginPage: React.FC = () => {
             transition={{ duration: 0.5 }}
           >
             <h1 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900 dark:text-white">
-              Join the <span className="text-neon-blue dark:text-neon-blue neon-text">Pytronix</span> Community
+              Join the <span className="text-neon-blue dark:text-neon-blue neon-text">Phytronix</span> Community
             </h1>
             <p className="text-gray-600 dark:text-soft-gray mb-6">
               Access exclusive deals, track your orders, and get technical support for your electronics projects.

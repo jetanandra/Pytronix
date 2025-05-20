@@ -1,8 +1,8 @@
-# Pytronix E-commerce Technical Documentation
+# Phytronix E-commerce Technical Documentation
 
 
 ## Overview
-Pytronix is a full-featured e-commerce platform for selling electronics and IoT components. The application provides a modern, responsive user interface with comprehensive product browsing, user management, wishlist functionality, and an admin panel for product and order management. Built with React, TypeScript, and Supabase, the platform offers a complete solution for online electronics retail.
+Phytronix is a full-featured e-commerce platform for selling electronics and IoT components. The application provides a modern, responsive user interface with comprehensive product browsing, user management, wishlist functionality, and an admin panel for product and order management. Built with React, TypeScript, and Supabase, the platform offers a complete solution for online electronics retail.
 
 ## Architecture
 
@@ -229,7 +229,7 @@ All tables have RLS enabled with policies that:
 1. **Clone the repository**
    ```bash
    git clone [repository-url]
-   cd pytronix-ecommerce
+   cd phytronix-ecommerce
    ```
 
 2. **Install dependencies**
@@ -258,7 +258,7 @@ All tables have RLS enabled with policies that:
 6. **Setup Admin Access**
    - Register a new user through the application
    - Navigate to `/admin-setup`
-   - Enter the admin secret code: `pytronix-admin-2025`
+   - Enter the admin secret code: `phytronix-admin-2025`
    - Sign out and sign back in to activate admin privileges
 
 ### Deployment

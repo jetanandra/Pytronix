@@ -77,7 +77,7 @@ const Navbar: React.FC = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center">
             <span className="text-xl md:text-2xl font-orbitron font-bold text-neon-blue dark:text-neon-blue neon-text">
-              PYTRONIX
+              PHYTRONIX
             </span>
           </Link>
           

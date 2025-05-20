@@ -52,7 +52,7 @@ const HomePage: React.FC = () => {
             >
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-gray-900 dark:text-white">
                 <span className="block">Build The Future</span>
-                <span className="text-neon-blue dark:text-neon-blue neon-text">With Pytronix</span>
+                <span className="text-neon-blue dark:text-neon-blue neon-text">With Phytronix</span>
               </h1>
               <p className="text-xl text-gray-600 dark:text-soft-gray mb-8">
                 India's premier destination for electronics and IoT components. 
@@ -63,7 +63,7 @@ const HomePage: React.FC = () => {
                   Explore Products
                 </Link>
                 <Link to="/login" className="btn-secondary text-center">
-                  Join Pytronix
+                  Join Phytronix
                 </Link>
               </div>
             </motion.div>
@@ -145,7 +145,7 @@ const HomePage: React.FC = () => {
         <div className="container-custom">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4 text-gray-900 dark:text-white">
-              Why Choose <span className="text-neon-blue dark:text-neon-blue">Pytronix</span>
+              Why Choose <span className="text-neon-blue dark:text-neon-blue">Phytronix</span>
             </h2>
             <p className="text-gray-600 dark:text-soft-gray max-w-2xl mx-auto">
               We're not just another electronics store. We're a community of engineers, hobbyists, and makers.
@@ -238,7 +238,7 @@ const HomePage: React.FC = () => {
             Ready to Start Your Next Project?
           </h2>
           <p className="text-white/80 text-lg mb-8 max-w-2xl mx-auto">
-            Join thousands of makers and engineers who trust Pytronix for their electronic components.
+            Join thousands of makers and engineers who trust Phytronix for their electronic components.
           </p>
           <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
             <Link to="/products" className="btn bg-white text-neon-blue hover:bg-gray-100">
@@ -259,7 +259,7 @@ const HomePage: React.FC = () => {
               What Our Customers Say
             </h2>
             <p className="text-gray-600 dark:text-soft-gray max-w-2xl mx-auto">
-              Discover why engineers and hobbyists across India choose Pytronix for their electronics needs.
+              Discover why engineers and hobbyists across India choose Phytronix for their electronics needs.
             </p>
           </div>
           
@@ -278,7 +278,7 @@ const HomePage: React.FC = () => {
                 </div>
               </div>
               <p className="text-gray-600 dark:text-soft-gray">
-                "Pytronix has become my go-to store for all electronic components. Their fast delivery and quality products have helped me complete numerous projects on time."
+                "Phytronix has become my go-to store for all electronic components. Their fast delivery and quality products have helped me complete numerous projects on time."
               </p>
             </div>
             
@@ -296,7 +296,7 @@ const HomePage: React.FC = () => {
                 </div>
               </div>
               <p className="text-gray-600 dark:text-soft-gray">
-                "The technical support team at Pytronix is exceptional. They've helped me troubleshoot complex IoT setups and recommended the right components for my projects."
+                "The technical support team at Phytronix is exceptional. They've helped me troubleshoot complex IoT setups and recommended the right components for my projects."
               </p>
             </div>
             
@@ -314,7 +314,7 @@ const HomePage: React.FC = () => {
                 </div>
               </div>
               <p className="text-gray-600 dark:text-soft-gray">
-                "I appreciate the wide range of robotics components available at Pytronix. As a robotics hobbyist, I've found everything I need to build my dream projects."
+                "I appreciate the wide range of robotics components available at Phytronix. As a robotics hobbyist, I've found everything I need to build my dream projects."
               </p>
             </div>
           </div>

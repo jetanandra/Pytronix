@@ -9,7 +9,7 @@ const corsHeaders = {
 
 // Create a single admin code for security
 // In production, this should be a more secure mechanism
-const ADMIN_SECRET_CODE = "pytronix-admin-2025";
+const ADMIN_SECRET_CODE = "phytronix-admin-2025";
 
 Deno.serve(async (req) => {
   // Handle CORS preflight request

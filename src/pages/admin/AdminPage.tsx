@@ -10,6 +10,8 @@ import OrderDetail from './admin/OrderDetail';
 import UserList from './admin/UserList';
 import AdminCategoryPage from './admin/AdminCategoryPage';
 import { Shield, AlertTriangle } from 'lucide-react';
+import ReviewManagementPage from './ReviewManagementPage';
+import OrderCancellationsPage from './OrderCancellationsPage';
 
 const AdminPage = () => {
   const { user } = useAuth();
@@ -69,6 +71,8 @@ const AdminPage = () => {
             <Route path="/orders/:id" element={<OrderDetail />} />
             <Route path="/categories" element={<AdminCategoryPage />} />
             <Route path="/users" element={<UserList />} />
+            <Route path="/reviews" element={<ReviewManagementPage />} />
+            <Route path="/cancellations" element={<OrderCancellationsPage />} />
             <Route path="*" element={<Navigate to="/admin" replace />} />
           </Routes>
         </main>

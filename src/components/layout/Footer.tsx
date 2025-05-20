@@ -10,7 +10,7 @@ const Footer: React.FC = () => {
           {/* About */}
           <div>
             <h3 className="text-xl font-orbitron font-bold mb-4 text-neon-blue dark:text-neon-blue">
-              PYTRONIX
+              PHYTRONIX
             </h3>
             <p className="text-gray-600 dark:text-soft-gray mb-4">
               Your one-stop destination for electronics and IoT components across India. Serving engineers, hobbyists, and makers with quality tech solutions.
@@ -108,7 +108,7 @@ const Footer: React.FC = () => {
               <li className="flex items-start">
                 <MapPin className="w-5 h-5 text-neon-blue mr-2 flex-shrink-0 mt-0.5" />
                 <span className="text-gray-600 dark:text-soft-gray">
-                  Nakari-2, Glob House, Pytronix <br />
+                  Nakari-2, Glob House, Phytronix <br />
                   North Lakhimpur 787001, India
                 </span>
               </li>
@@ -120,8 +120,8 @@ const Footer: React.FC = () => {
               </li>
               <li className="flex items-center">
                 <Mail className="w-5 h-5 text-neon-blue mr-2 flex-shrink-0" />
-                <a href="mailto:support@pytronix.com" className="text-gray-600 dark:text-soft-gray hover:text-neon-blue dark:hover:text-neon-blue transition">
-                  support@pytronix.com
+                <a href="mailto:support@phytronix.com" className="text-gray-600 dark:text-soft-gray hover:text-neon-blue dark:hover:text-neon-blue transition">
+                  support@phytronix.com
                 </a>
               </li>
             </ul>
@@ -132,7 +132,7 @@ const Footer: React.FC = () => {
         <div className="pt-6 mt-6 border-t border-gray-200 dark:border-gray-700">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-500 dark:text-gray-400 text-sm mb-4 md:mb-0">
-              © {new Date().getFullYear()} Pytronix. All rights reserved.
+              © {new Date().getFullYear()} Phytronix. All rights reserved.
             </p>
             <div className="flex items-center space-x-4">
               <img src="https://cdn-icons-png.flaticon.com/512/196/196566.png" alt="Visa" className="h-8 w-auto" />

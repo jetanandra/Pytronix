@@ -23,7 +23,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ isEdit = false }) => {
     discount_price: undefined,
     image: '',
     images: [],
-    category: '',
+    category_id: '',
     tags: [],
     stock: 0,
     full_description: '',

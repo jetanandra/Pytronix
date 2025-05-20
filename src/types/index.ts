@@ -14,10 +14,6 @@ export type Product = {
   image: string;
   images?: string[];
   category_id?: string;
-  /**
-   * @deprecated Use category_id instead
-   */
-  category?: string;
   tags: string[];
   stock: number;
   rating: number;

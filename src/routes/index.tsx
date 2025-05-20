@@ -12,7 +12,7 @@ const ProductDetailPage = lazy(() => import('../pages/ProductDetailPage'));
 const CartPage = lazy(() => import('../pages/CartPage'));
 const CheckoutPage = lazy(() => import('../pages/CheckoutPage'));
 const LoginPage = lazy(() => import('../pages/LoginPage'));
-const AdminPage = lazy(() => import('../pages/AdminPage'));
+const AdminPage = lazy(() => import('../pages/admin/AdminPage'));
 const ProfilePage = lazy(() => import('../pages/ProfilePage'));
 const NotFoundPage = lazy(() => import('../pages/NotFoundPage'));
 const AdminSetupPage = lazy(() => import('../pages/AdminSetupPage'));

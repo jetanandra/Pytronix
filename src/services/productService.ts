@@ -109,30 +109,6 @@ export const deleteCategory = async (id: string): Promise<void> => {
   if (error) throw error;
 };
 
-/**
- * @deprecated Use getAllCategories instead
- */
-export const getProductCategories = async (): Promise<string[]> => {
-  try {
-    // Fetch all products to extract unique categories
-    const { data, error } = await supabase
-      .from('products')
-      .select('category');
-      
-    if (error) throw error;
-    
-    // Extract unique categories using Set
-    const uniqueCategories = Array.from(
-      new Set(data.map(item => item.category).filter(Boolean))
-    );
-    
-    return uniqueCategories;
-  } catch (error) {
-    console.error('Error fetching product categories:', error);
-    return [];
-  }
-};
-
 export const getCategoryById = async (id: string): Promise<Category | null> => {
   try {
     const { data, error } = await supabase

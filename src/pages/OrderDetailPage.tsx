@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getOrderById, cancelOrder } from '../services/orderService';
 import { getCancellationRequestsByOrderId } from '../services/cancellationService';
@@ -31,6 +31,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import CancellationModal from '../components/order/CancellationModal';
 import ReplacementModal from '../components/order/ReplacementModal';
 import CancellationStatus from '../components/order/CancellationStatus';
+import { createReview } from '../services/reviewService';
 
 const OrderDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -46,6 +47,7 @@ const OrderDetailPage: React.FC = () => {
   const [showReplacementModal, setShowReplacementModal] = useState<boolean>(false);
   const [cancellationRequests, setCancellationRequests] = useState<OrderCancellationRequest[]>([]);
   const [loadingRequests, setLoadingRequests] = useState<boolean>(true);
+  const orderItemsRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
     const fetchData = async () => {
@@ -108,11 +110,25 @@ const OrderDetailPage: React.FC = () => {
     setShowReplacementModal(true);
   };
 
-  const submitReview = (productId: string) => {
-    toast.success('Thank you for your review!');
-    setReviewProduct(null);
-    setReviewText('');
-    setReviewRating(5);
+  const submitReview = async (productId: string) => {
+    try {
+      await createReview({
+        product_id: productId,
+        rating: reviewRating,
+        title: '',
+        content: reviewText,
+        is_verified_purchase: true,
+        user_id: '' // This will be set by the service
+      });
+      
+      toast.success('Thank you for your review!');
+      setReviewProduct(null);
+      setReviewText('');
+      setReviewRating(5);
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to submit review');
+    }
   };
   
   const getStatusStep = (status: string): number => {
@@ -168,6 +184,16 @@ const OrderDetailPage: React.FC = () => {
   
   // Check if user can request replacement (only delivered orders)
   const canRequestReplacement = order && order.status === 'delivered';
+  
+  // Handler for the main review button
+  const handleMainReviewClick = () => {
+    if (order && order.items && order.items.length > 0) {
+      setReviewProduct(order.items[0].product_id);
+      setTimeout(() => {
+        orderItemsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100); // Wait for state update
+    }
+  };
   
   if (loading) {
     return (
@@ -445,7 +471,7 @@ const OrderDetailPage: React.FC = () => {
                 <p className="text-sm text-green-700 dark:text-green-200 mb-3">
                   <strong>How was your experience?</strong> Share your feedback by reviewing the products you purchased.
                 </p>
-                <button className="btn-primary">
+                <button className="btn-primary" onClick={handleMainReviewClick}>
                   <Star className="w-4 h-4 mr-2" />
                   Review Your Purchase
                 </button>
@@ -609,7 +635,7 @@ const OrderDetailPage: React.FC = () => {
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Order Items */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2" ref={orderItemsRef}>
             <div className="bg-white dark:bg-light-navy rounded-lg shadow-md overflow-hidden">
               <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                 <h3 className="font-semibold text-gray-900 dark:text-white flex items-center">

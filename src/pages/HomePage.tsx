@@ -69,76 +69,81 @@ const HomePage: React.FC = () => {
             <LoaderSpinner size="lg" color="blue" />
           </div>
         ) : heroSlides.length > 0 ? (
-          <Swiper
-            spaceBetween={0}
-            slidesPerView={1}
-            autoplay={{
-              delay: 5000,
-              disableOnInteraction: false,
-            }}
-            pagination={{
-              clickable: true,
-              el: '.hero-pagination',
-              bulletClass: 'swiper-pagination-bullet',
-              bulletActiveClass: 'swiper-pagination-bullet-active',
-            }}
-            navigation={{
-              prevEl: '.hero-button-prev',
-              nextEl: '.hero-button-next',
-            }}
-            loop={true}
-            effect="fade"
-            modules={[Autoplay, Pagination, Navigation, EffectFade]}
-            className="h-[700px] w-full"
-          >
-            {heroSlides.map((slide) => (
-              <SwiperSlide key={slide.id}>
-                <div className="relative h-full w-full overflow-hidden">
-                  <img 
-                    src={slide.image} 
-                    alt={slide.title} 
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent flex flex-col justify-center p-8 md:p-16">
-                    <div className="container-custom">
-                      <motion.div
-                        initial={{ opacity: 0, x: -50 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.7 }}
-                        className="hero-slide-content p-8 md:p-10"
-                      >
-                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-white font-orbitron leading-tight">
-                          {slide.title}
-                        </h1>
-                        <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-xl">
-                          {slide.subtitle}
-                        </p>
-                        {slide.cta_text && (
-                          <Link 
-                            to={slide.cta_link || '#'} 
-                            className="btn-primary text-center px-8 py-3 text-lg inline-block shadow-lg hover:shadow-xl transform transition hover:-translate-y-1"
-                          >
-                            {slide.cta_text} <ChevronRight className="inline-block ml-1 w-5 h-5" />
-                          </Link>
-                        )}
-                      </motion.div>
+          <div className="relative">
+            <Swiper
+              spaceBetween={0}
+              slidesPerView={1}
+              autoplay={{
+                delay: 5000,
+                disableOnInteraction: false,
+              }}
+              pagination={{
+                clickable: true,
+                el: '.hero-pagination',
+                bulletClass: 'swiper-pagination-bullet',
+                bulletActiveClass: 'swiper-pagination-bullet-active',
+              }}
+              navigation={{
+                prevEl: '.hero-button-prev',
+                nextEl: '.hero-button-next',
+              }}
+              loop={true}
+              effect="fade"
+              modules={[Autoplay, Pagination, Navigation, EffectFade]}
+              className="h-[700px] w-full"
+            >
+              {heroSlides.map((slide) => (
+                <SwiperSlide key={slide.id}>
+                  <div className="relative h-full w-full overflow-hidden">
+                    <img 
+                      src={slide.image} 
+                      alt={slide.title} 
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent flex flex-col justify-center p-8 md:p-16">
+                      <div className="container-custom">
+                        <motion.div
+                          initial={{ opacity: 0, x: -50 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.7 }}
+                          className="hero-slide-content p-8 md:p-10"
+                        >
+                          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-white font-orbitron leading-tight">
+                            {slide.title}
+                          </h1>
+                          <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-xl">
+                            {slide.subtitle}
+                          </p>
+                          {slide.cta_text && (
+                            <Link 
+                              to={slide.cta_link || '#'} 
+                              className="btn-primary text-center px-8 py-3 text-lg inline-block shadow-lg hover:shadow-xl transform transition hover:-translate-y-1"
+                            >
+                              {slide.cta_text} <ChevronRight className="inline-block ml-1 w-5 h-5" />
+                            </Link>
+                          )}
+                        </motion.div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </SwiperSlide>
-            ))}
+                </SwiperSlide>
+              ))}
+              
+              {/* Custom navigation buttons */}
+              <div className="hero-button-prev absolute left-6 top-1/2 transform -translate-y-1/2 z-10">
+                <ArrowRight className="w-6 h-6 transform rotate-180" />
+              </div>
+              <div className="hero-button-next absolute right-6 top-1/2 transform -translate-y-1/2 z-10">
+                <ArrowRight className="w-6 h-6" />
+              </div>
+              
+              {/* Custom pagination */}
+              <div className="hero-pagination absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10 flex justify-center"></div>
+            </Swiper>
             
-            {/* Custom navigation buttons */}
-            <div className="hero-button-prev absolute left-6 top-1/2 transform -translate-y-1/2 z-10">
-              <ArrowRight className="w-6 h-6 transform rotate-180" />
-            </div>
-            <div className="hero-button-next absolute right-6 top-1/2 transform -translate-y-1/2 z-10">
-              <ArrowRight className="w-6 h-6" />
-            </div>
-            
-            {/* Custom pagination */}
-            <div className="hero-pagination absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10 flex justify-center"></div>
-          </Swiper>
+            {/* Vertical border line at the bottom */}
+            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-px h-16 bg-gradient-to-b from-transparent via-neon-blue to-neon-blue"></div>
+          </div>
         ) : (
           <div className="h-[700px] bg-gradient-to-b from-white to-gray-100 dark:from-dark-navy dark:to-light-navy overflow-hidden">
             <div className="container-custom h-full flex flex-col md:flex-row items-center">
@@ -210,6 +215,9 @@ const HomePage: React.FC = () => {
                 </div>
               </motion.div>
             </div>
+            
+            {/* Vertical border line at the bottom */}
+            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-px h-16 bg-gradient-to-b from-transparent via-neon-blue to-neon-blue"></div>
           </div>
         )}
       </section>

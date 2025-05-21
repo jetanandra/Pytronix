@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Zap, Cpu, Wifi, ShipIcon as ChipIcon, Shield, Calendar, Lightbulb, BookOpen, Users, Settings } from 'lucide-react';
+import { ArrowRight, Zap, Cpu, Wifi, ShipIcon as ChipIcon, Shield, Calendar, Lightbulb, BookOpen, Users, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
 import ProductCard from '../components/product/ProductCard';
 import { getAllProducts, getAllCategories } from '../services/productService';
 import { getAllWorkshops } from '../services/workshopService';
@@ -14,6 +14,36 @@ const HomePage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [categories, setCategories] = useState<Category[]>([]);
   const navigate = useNavigate();
+  
+  // Hero slider state
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const heroImages = [
+    {
+      url: "https://images.pexels.com/photos/163100/circuit-circuit-board-resistor-computer-163100.jpeg",
+      title: "Build The Future",
+      subtitle: "With Phytronix"
+    },
+    {
+      url: "https://images.pexels.com/photos/2582937/pexels-photo-2582937.jpeg",
+      title: "Cutting-Edge",
+      subtitle: "IoT Components"
+    },
+    {
+      url: "https://images.pexels.com/photos/1472443/pexels-photo-1472443.jpeg",
+      title: "Innovative",
+      subtitle: "Tech Solutions"
+    },
+    {
+      url: "https://images.pexels.com/photos/3861969/pexels-photo-3861969.jpeg",
+      title: "Empower",
+      subtitle: "Your Projects"
+    },
+    {
+      url: "https://images.pexels.com/photos/2336123/pexels-photo-2336123.jpeg",
+      title: "Connect",
+      subtitle: "Your Ideas"
+    }
+  ];
   
   useEffect(() => {
     const fetchData = async () => {
@@ -41,7 +71,22 @@ const HomePage: React.FC = () => {
     };
     
     fetchData();
+    
+    // Auto-advance slides
+    const slideInterval = setInterval(() => {
+      setCurrentSlide(prev => (prev + 1) % heroImages.length);
+    }, 5000);
+    
+    return () => clearInterval(slideInterval);
   }, []);
+  
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % heroImages.length);
+  };
+  
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + heroImages.length) % heroImages.length);
+  };
   
   return (
     <>
@@ -56,8 +101,8 @@ const HomePage: React.FC = () => {
               className="md:w-1/2 mb-10 md:mb-0"
             >
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-gray-900 dark:text-white">
-                <span className="block">Build The Future</span>
-                <span className="text-neon-blue dark:text-neon-blue neon-text">With Phytronix</span>
+                <span className="block">{heroImages[currentSlide].title}</span>
+                <span className="text-neon-blue dark:text-neon-blue neon-text">{heroImages[currentSlide].subtitle}</span>
               </h1>
               <p className="text-xl text-gray-600 dark:text-soft-gray mb-8">
                 India's premier destination for electronics and IoT components. 
@@ -80,13 +125,52 @@ const HomePage: React.FC = () => {
               className="md:w-1/2"
             >
               <div className="relative">
-                <div className="w-full h-80 md:h-96 lg:h-[500px] relative">
-                  <img 
-                    src="https://images.pexels.com/photos/163100/circuit-circuit-board-resistor-computer-163100.jpeg" 
-                    alt="Electronics and circuit boards" 
-                    className="w-full h-full object-cover rounded-lg"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-r from-neon-blue/30 to-neon-violet/30 rounded-lg mix-blend-overlay"></div>
+                <div className="w-full h-80 md:h-96 lg:h-[500px] relative overflow-hidden rounded-lg">
+                  {/* Image Slider */}
+                  <div className="absolute inset-0 flex transition-transform duration-500 ease-in-out" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
+                    {heroImages.map((image, index) => (
+                      <div key={index} className="min-w-full h-full flex-shrink-0">
+                        <img 
+                          src={image.url} 
+                          alt={`Electronics slide ${index + 1}`} 
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-r from-neon-blue/30 to-neon-violet/30 rounded-lg mix-blend-overlay"></div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Slider Controls */}
+                  <button 
+                    onClick={prevSlide}
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white rounded-full p-2 transition-colors z-10"
+                    aria-label="Previous slide"
+                  >
+                    <ChevronLeft className="w-6 h-6" />
+                  </button>
+                  <button 
+                    onClick={nextSlide}
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white rounded-full p-2 transition-colors z-10"
+                    aria-label="Next slide"
+                  >
+                    <ChevronRight className="w-6 h-6" />
+                  </button>
+                  
+                  {/* Slide Indicators */}
+                  <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2 z-10">
+                    {heroImages.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setCurrentSlide(index)}
+                        className={`w-2.5 h-2.5 rounded-full transition-colors ${
+                          currentSlide === index 
+                            ? 'bg-white' 
+                            : 'bg-white/50 hover:bg-white/80'
+                        }`}
+                        aria-label={`Go to slide ${index + 1}`}
+                      />
+                    ))}
+                  </div>
                 </div>
                 
                 {/* Animated glowing elements */}

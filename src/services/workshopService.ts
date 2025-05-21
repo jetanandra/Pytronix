@@ -7,7 +7,7 @@ export const getAllWorkshops = async (): Promise<Workshop[]> => {
       .from('workshops')
       .select(`
         *,
-        category_details:workshop_categories(id, name, image)
+        workshop_categories(id, name, image)
       `)
       .order('created_at', { ascending: false });
       
@@ -17,7 +17,7 @@ export const getAllWorkshops = async (): Promise<Workshop[]> => {
     const transformedData = data?.map(workshop => ({
       ...workshop,
       // Keep the category field for backward compatibility
-      category: workshop.category_details?.name || workshop.category
+      category: workshop.workshop_categories?.name || workshop.category
     })) || [];
     
     return transformedData;
@@ -33,7 +33,7 @@ export const getWorkshopById = async (id: string): Promise<Workshop | null> => {
       .from('workshops')
       .select(`
         *,
-        category_details:workshop_categories(id, name, image)
+        workshop_categories(id, name, image)
       `)
       .eq('id', id)
       .single();
@@ -44,7 +44,7 @@ export const getWorkshopById = async (id: string): Promise<Workshop | null> => {
     if (data) {
       return {
         ...data,
-        category: data.category_details?.name || data.category
+        category: data.workshop_categories?.name || data.category
       };
     }
     
@@ -56,9 +56,12 @@ export const getWorkshopById = async (id: string): Promise<Workshop | null> => {
 };
 
 export const createWorkshop = async (workshop: Omit<Workshop, 'id' | 'created_at'>): Promise<Workshop> => {
+  // Remove any potential workshop_categories data before insert
+  const { workshop_categories, ...workshopData } = workshop as any;
+  
   const { data, error } = await supabase
     .from('workshops')
-    .insert([workshop])
+    .insert([workshopData])
     .select()
     .single();
     
@@ -67,9 +70,12 @@ export const createWorkshop = async (workshop: Omit<Workshop, 'id' | 'created_at
 };
 
 export const updateWorkshop = async (id: string, workshop: Partial<Workshop>): Promise<Workshop> => {
+  // Remove any potential workshop_categories data before update
+  const { workshop_categories, ...workshopData } = workshop as any;
+  
   const { data, error } = await supabase
     .from('workshops')
-    .update(workshop)
+    .update(workshopData)
     .eq('id', id)
     .select()
     .single();
@@ -140,7 +146,7 @@ export const getWorkshopsByCategory = async (categoryId: string): Promise<Worksh
       .from('workshops')
       .select(`
         *,
-        category_details:workshop_categories(id, name, image)
+        workshop_categories(id, name, image)
       `)
       .eq('category_id', categoryId)
       .order('created_at', { ascending: false });
@@ -151,7 +157,7 @@ export const getWorkshopsByCategory = async (categoryId: string): Promise<Worksh
     const transformedData = data?.map(workshop => ({
       ...workshop,
       // Keep the category field for backward compatibility
-      category: workshop.category_details?.name || workshop.category
+      category: workshop.workshop_categories?.name || workshop.category
     })) || [];
     
     return transformedData;

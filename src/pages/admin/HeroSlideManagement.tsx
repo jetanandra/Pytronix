@@ -363,6 +363,7 @@ const HeroSlideManagement: React.FC = () => {
               Hero Slides Preview
             </h2>
             <button
+              type="button"
               onClick={() => setPreviewMode(false)}
               className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             >
@@ -391,7 +392,7 @@ const HeroSlideManagement: React.FC = () => {
                             {slide.subtitle}
                           </p>
                           {slide.cta_text && (
-                            <button className="btn-primary w-max">
+                            <button type="button" className="btn-primary w-max">
                               {slide.cta_text}
                             </button>
                           )}

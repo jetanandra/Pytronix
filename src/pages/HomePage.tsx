@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Zap, Cpu, Wifi, ShipIcon as ChipIcon, Shield, Calendar, Lightbulb, BookOpen, Users, Settings, Clock } from 'lucide-react';
+import { ArrowRight, Zap, Cpu, Wifi, ShipIcon as ChipIcon, Shield, Calendar, Lightbulb, BookOpen, Users, Settings, Clock, ChevronRight } from 'lucide-react';
 import ProductCard from '../components/product/ProductCard';
 import { getAllProducts, getAllCategories } from '../services/productService';
 import { getAllWorkshops } from '../services/workshopService';
@@ -9,12 +9,13 @@ import { getHeroSlides } from '../services/settingsService';
 import LoaderSpinner from '../components/ui/LoaderSpinner';
 import { Product, Category, Workshop, HeroSlide } from '../types';
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { Autoplay, Pagination, Navigation } from 'swiper/modules';
+import { Autoplay, Pagination, Navigation, EffectFade } from 'swiper/modules';
 
 // Import Swiper styles
 import 'swiper/css';
 import 'swiper/css/pagination';
 import 'swiper/css/navigation';
+import 'swiper/css/effect-fade';
 
 const HomePage: React.FC = () => {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
@@ -64,7 +65,7 @@ const HomePage: React.FC = () => {
       {/* Hero Section with Swiper */}
       <section className="pt-20 relative overflow-hidden">
         {loading ? (
-          <div className="h-[600px] flex items-center justify-center">
+          <div className="h-[700px] flex items-center justify-center">
             <LoaderSpinner size="lg" color="blue" />
           </div>
         ) : heroSlides.length > 0 ? (
@@ -85,24 +86,26 @@ const HomePage: React.FC = () => {
               prevEl: '.hero-button-prev',
               nextEl: '.hero-button-next',
             }}
-            modules={[Autoplay, Pagination, Navigation]}
-            className="h-[600px] w-full"
+            loop={true}
+            effect="fade"
+            modules={[Autoplay, Pagination, Navigation, EffectFade]}
+            className="h-[700px] w-full"
           >
             {heroSlides.map((slide) => (
               <SwiperSlide key={slide.id}>
-                <div className="relative h-full w-full">
+                <div className="relative h-full w-full overflow-hidden">
                   <img 
                     src={slide.image} 
                     alt={slide.title} 
                     className="w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent flex flex-col justify-center p-8 md:p-16">
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent flex flex-col justify-center p-8 md:p-16">
                     <div className="container-custom">
                       <motion.div
-                        initial={{ opacity: 0, y: -20 }}
-                        animate={{ opacity: 1, y: 0 }}
+                        initial={{ opacity: 0, x: -50 }}
+                        animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.7 }}
-                        className="max-w-2xl"
+                        className="hero-slide-content p-8 md:p-10"
                       >
                         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-white font-orbitron leading-tight">
                           {slide.title}
@@ -111,8 +114,11 @@ const HomePage: React.FC = () => {
                           {slide.subtitle}
                         </p>
                         {slide.cta_text && (
-                          <Link to={slide.cta_link || '#'} className="btn-primary text-center px-8 py-3 text-lg inline-block">
-                            {slide.cta_text}
+                          <Link 
+                            to={slide.cta_link || '#'} 
+                            className="btn-primary text-center px-8 py-3 text-lg inline-block shadow-lg hover:shadow-xl transform transition hover:-translate-y-1"
+                          >
+                            {slide.cta_text} <ChevronRight className="inline-block ml-1 w-5 h-5" />
                           </Link>
                         )}
                       </motion.div>
@@ -123,18 +129,18 @@ const HomePage: React.FC = () => {
             ))}
             
             {/* Custom navigation buttons */}
-            <div className="hero-button-prev absolute left-4 top-1/2 transform -translate-y-1/2 z-10 bg-black/30 hover:bg-black/50 text-white rounded-full w-12 h-12 flex items-center justify-center cursor-pointer transition-all">
+            <div className="hero-button-prev absolute left-6 top-1/2 transform -translate-y-1/2 z-10">
               <ArrowRight className="w-6 h-6 transform rotate-180" />
             </div>
-            <div className="hero-button-next absolute right-4 top-1/2 transform -translate-y-1/2 z-10 bg-black/30 hover:bg-black/50 text-white rounded-full w-12 h-12 flex items-center justify-center cursor-pointer transition-all">
+            <div className="hero-button-next absolute right-6 top-1/2 transform -translate-y-1/2 z-10">
               <ArrowRight className="w-6 h-6" />
             </div>
             
             {/* Custom pagination */}
-            <div className="hero-pagination absolute bottom-6 left-1/2 transform -translate-x-1/2 z-10 flex justify-center"></div>
+            <div className="hero-pagination absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10 flex justify-center"></div>
           </Swiper>
         ) : (
-          <div className="h-[600px] bg-gradient-to-b from-white to-gray-100 dark:from-dark-navy dark:to-light-navy overflow-hidden">
+          <div className="h-[700px] bg-gradient-to-b from-white to-gray-100 dark:from-dark-navy dark:to-light-navy overflow-hidden">
             <div className="container-custom h-full flex flex-col md:flex-row items-center">
               <motion.div 
                 initial={{ opacity: 0, x: -20 }}

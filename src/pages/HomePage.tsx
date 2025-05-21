@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Zap, Cpu, Wifi, ShipIcon as ChipIcon, Shield, Calendar, Lightbulb, BookOpen, Users, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowRight, Zap, Cpu, Wifi, ShipIcon as ChipIcon, Shield, Calendar, Lightbulb, BookOpen, Users, Settings, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import ProductCard from '../components/product/ProductCard';
 import { getAllProducts, getAllCategories } from '../services/productService';
 import { getAllWorkshops } from '../services/workshopService';
@@ -617,4 +617,5 @@ const HomePage: React.FC = () => {
   );
 };
 
-export default HomePage;
+export default HomePage;</bolt
+Action>

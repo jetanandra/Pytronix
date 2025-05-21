@@ -31,6 +31,11 @@ const OrderDetail = lazy(() => import('../pages/admin/OrderDetail'));
 const OrderCancellationsPage = lazy(() => import('../pages/admin/OrderCancellationsPage'));
 const ReviewManagementPage = lazy(() => import('../pages/admin/ReviewManagementPage'));
 
+// Workshop System Pages
+const WorkshopsPage = lazy(() => import('../pages/WorkshopsPage'));
+const WorkshopDetailPage = lazy(() => import('../pages/WorkshopDetailPage'));
+const WorkshopRequestPage = lazy(() => import('../pages/WorkshopRequestPage'));
+
 const AppRoutes: React.FC = () => {
   return (
     <BrowserRouter>
@@ -86,6 +91,12 @@ const AppRoutes: React.FC = () => {
               <Route path="/warranty" element={<WarrantyPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
+              
+              {/* Workshop Routes */}
+              <Route path="/workshops" element={<WorkshopsPage />} />
+              <Route path="/workshop/:id" element={<WorkshopDetailPage />} />
+              <Route path="/workshop-request" element={<WorkshopRequestPage />} />
+              
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>

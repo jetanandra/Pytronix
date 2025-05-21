@@ -165,3 +165,55 @@ export interface OrderCancellationRequest {
   created_at: string;
   updated_at: string;
 }
+
+// Workshop Management Types
+export interface Workshop {
+  id: string;
+  title: string;
+  category: string;
+  short_description: string;
+  description: string;
+  image: string;
+  gallery?: string[];
+  video_url?: string;
+  video_thumbnail?: string;
+  duration: string;
+  capacity: number;
+  target_audience: string;
+  difficulty_level: 'beginner' | 'intermediate' | 'advanced';
+  prerequisites?: string;
+  learning_outcomes?: string[];
+  equipment_provided?: string[];
+  is_featured: boolean;
+  created_at: string;
+}
+
+export interface WorkshopCategory {
+  id: string;
+  name: string;
+  description: string;
+  image: string;
+  created_at: string;
+}
+
+export interface WorkshopRequest {
+  id?: string;
+  institution_name: string;
+  institution_type: 'school' | 'college' | 'corporate' | 'ngo' | 'government' | 'other';
+  contact_name: string;
+  contact_email: string;
+  contact_phone: string;
+  workshop_id: string;
+  preferred_dates: string[];
+  participants: number;
+  additional_requirements?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  admin_response?: string;
+  created_at?: string;
+  workshop?: {
+    id: string;
+    title: string;
+    duration: string;
+    category: string;
+  };
+}

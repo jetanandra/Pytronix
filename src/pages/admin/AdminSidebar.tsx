@@ -12,7 +12,9 @@ import {
   X,
   AlertTriangle,
   Layers,
-  Star
+  Star,
+  Calendar,
+  MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -51,6 +53,16 @@ const AdminSidebar = () => {
       name: 'Cancellations',
       path: '/admin/cancellations',
       icon: <AlertTriangle className="w-5 h-5" />
+    },
+    {
+      name: 'Workshops',
+      path: '/admin/workshops',
+      icon: <Calendar className="w-5 h-5" />
+    },
+    {
+      name: 'Workshop Requests',
+      path: '/admin/workshop-requests',
+      icon: <MessageSquare className="w-5 h-5" />
     },
     {
       name: 'Users',

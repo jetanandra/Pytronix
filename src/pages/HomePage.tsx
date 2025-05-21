@@ -1,41 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Zap, Cpu, Wifi, ShipIcon as ChipIcon, Shield } from 'lucide-react';
+import { ArrowRight, Zap, Cpu, Wifi, ShipIcon as ChipIcon, Shield, Calendar, Lightbulb, BookOpen } from 'lucide-react';
 import ProductCard from '../components/product/ProductCard';
 import { getAllProducts, getAllCategories } from '../services/productService';
+import { getAllWorkshops } from '../services/workshopService';
 import LoaderSpinner from '../components/ui/LoaderSpinner';
-import { Product, Category } from '../types';
+import { Product, Category, Workshop } from '../types';
 
 const HomePage: React.FC = () => {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [featuredWorkshops, setFeaturedWorkshops] = useState<Workshop[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [categories, setCategories] = useState<Category[]>([]);
   const navigate = useNavigate();
   
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const products = await getAllProducts();
+        const [products, categoriesData, workshops] = await Promise.all([
+          getAllProducts(),
+          getAllCategories(),
+          getAllWorkshops()
+        ]);
+        
         // Get the first 4 products as featured products
         setFeaturedProducts(products.slice(0, 4));
+        
+        // Get featured workshops
+        const featuredWorkshops = workshops.filter(w => w.is_featured).slice(0, 3);
+        setFeaturedWorkshops(featuredWorkshops);
+        
+        setCategories(categoriesData);
       } catch (error) {
-        console.error('Error fetching products:', error);
+        console.error('Error fetching data:', error);
       } finally {
         setLoading(false);
       }
     };
     
-    fetchProducts();
-  }, []);
-
-  useEffect(() => {
-    const fetchCategories = async () => {
-      const data = await getAllCategories();
-      setCategories(data);
-    };
-    fetchCategories();
+    fetchData();
   }, []);
   
   return (
@@ -62,8 +67,8 @@ const HomePage: React.FC = () => {
                 <Link to="/products" className="btn-primary text-center">
                   Explore Products
                 </Link>
-                <Link to="/login" className="btn-secondary text-center">
-                  Join Phytronix
+                <Link to="/workshops" className="btn-secondary text-center">
+                  Discover Workshops
                 </Link>
               </div>
             </motion.div>
@@ -140,8 +145,64 @@ const HomePage: React.FC = () => {
         </div>
       </section>
       
+      {/* Featured Workshops Section */}
+      {featuredWorkshops.length > 0 && (
+        <section className="py-16 bg-white dark:bg-dark-navy">
+          <div className="container-custom">
+            <div className="flex justify-between items-center mb-10">
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+                Featured Workshops
+              </h2>
+              <Link to="/workshops" className="flex items-center text-neon-blue hover:text-blue-700 transition">
+                View all <ArrowRight className="w-4 h-4 ml-1" />
+              </Link>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {featuredWorkshops.map((workshop) => (
+                <motion.div
+                  key={workshop.id}
+                  whileHover={{ y: -10 }}
+                  className="bg-white dark:bg-light-navy rounded-xl shadow-lg overflow-hidden"
+                >
+                  <div className="h-48 overflow-hidden">
+                    <img 
+                      src={workshop.image} 
+                      alt={workshop.title} 
+                      className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                    />
+                  </div>
+                  <div className="p-6">
+                    <div className="flex items-center mb-2">
+                      <span className="px-3 py-1 text-xs font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full">
+                        {workshop.category}
+                      </span>
+                      <span className="ml-2 text-sm text-gray-600 dark:text-gray-400 flex items-center">
+                        <Calendar className="w-3 h-3 mr-1" /> {workshop.duration}
+                      </span>
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                      {workshop.title}
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
+                      {workshop.short_description}
+                    </p>
+                    <Link 
+                      to={`/workshop/${workshop.id}`} 
+                      className="text-neon-blue font-medium hover:text-blue-700 flex items-center"
+                    >
+                      Learn more <ArrowRight className="w-4 h-4 ml-1" />
+                    </Link>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+      
       {/* Features Section */}
-      <section className="py-16 bg-white dark:bg-dark-navy">
+      <section className="py-16 bg-gray-50 dark:bg-light-navy">
         <div className="container-custom">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4 text-gray-900 dark:text-white">
@@ -154,7 +215,7 @@ const HomePage: React.FC = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {/* Feature 1 */}
-            <div className="bg-gray-50 dark:bg-light-navy p-6 rounded-lg transition-transform hover:translate-y-[-8px]">
+            <div className="bg-white dark:bg-dark-navy p-6 rounded-lg transition-transform hover:translate-y-[-8px]">
               <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-4">
                 <Zap className="w-6 h-6 text-neon-blue" />
               </div>
@@ -165,7 +226,7 @@ const HomePage: React.FC = () => {
             </div>
             
             {/* Feature 2 */}
-            <div className="bg-gray-50 dark:bg-light-navy p-6 rounded-lg transition-transform hover:translate-y-[-8px]">
+            <div className="bg-white dark:bg-dark-navy p-6 rounded-lg transition-transform hover:translate-y-[-8px]">
               <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
                 <Cpu className="w-6 h-6 text-neon-green" />
               </div>
@@ -176,18 +237,18 @@ const HomePage: React.FC = () => {
             </div>
             
             {/* Feature 3 */}
-            <div className="bg-gray-50 dark:bg-light-navy p-6 rounded-lg transition-transform hover:translate-y-[-8px]">
+            <div className="bg-white dark:bg-dark-navy p-6 rounded-lg transition-transform hover:translate-y-[-8px]">
               <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mb-4">
-                <Wifi className="w-6 h-6 text-neon-violet" />
+                <BookOpen className="w-6 h-6 text-neon-violet" />
               </div>
-              <h3 className="text-xl font-bold mb-2 text-gray-900 dark:text-white">Tech Support</h3>
+              <h3 className="text-xl font-bold mb-2 text-gray-900 dark:text-white">Hands-on Workshops</h3>
               <p className="text-gray-600 dark:text-soft-gray">
-                Get expert advice from our team of engineers on your electronics projects.
+                Learn through practical workshops led by industry experts and educators.
               </p>
             </div>
             
             {/* Feature 4 */}
-            <div className="bg-gray-50 dark:bg-light-navy p-6 rounded-lg transition-transform hover:translate-y-[-8px]">
+            <div className="bg-white dark:bg-dark-navy p-6 rounded-lg transition-transform hover:translate-y-[-8px]">
               <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mb-4">
                 <Shield className="w-6 h-6 text-yellow-500" />
               </div>
@@ -201,7 +262,7 @@ const HomePage: React.FC = () => {
       </section>
       
       {/* Featured Products */}
-      <section className="py-16 bg-gray-50 dark:bg-light-navy">
+      <section className="py-16 bg-white dark:bg-dark-navy">
         <div className="container-custom">
           <div className="flex justify-between items-center mb-10">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -231,21 +292,82 @@ const HomePage: React.FC = () => {
         </div>
       </section>
       
+      {/* Workshop CTA Section */}
+      <section className="py-16 bg-gradient-to-r from-blue-600 to-purple-600">
+        <div className="container-custom">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white font-orbitron">
+                Hands-on Technology Workshops
+              </h2>
+              <p className="text-white/90 text-lg mb-6">
+                Immersive learning experiences designed for schools, colleges, and organizations. Our expert-led workshops cover drones, robotics, AI, and more.
+              </p>
+              <div className="space-y-4">
+                <div className="flex items-start">
+                  <div className="bg-white/20 p-2 rounded-full mr-3">
+                    <Lightbulb className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-medium">Practical Learning</h3>
+                    <p className="text-white/80 text-sm">Hands-on experience with cutting-edge technology</p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <div className="bg-white/20 p-2 rounded-full mr-3">
+                    <Users className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-medium">Expert Instructors</h3>
+                    <p className="text-white/80 text-sm">Learn from industry professionals and educators</p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <div className="bg-white/20 p-2 rounded-full mr-3">
+                    <Settings className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-medium">Customizable Programs</h3>
+                    <p className="text-white/80 text-sm">Tailored to your institution's specific needs</p>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-8">
+                <Link to="/workshops" className="btn bg-white text-blue-600 hover:bg-gray-100">
+                  Explore Workshops
+                </Link>
+              </div>
+            </div>
+            <div className="relative">
+              <img 
+                src="https://images.pexels.com/photos/8566472/pexels-photo-8566472.jpeg" 
+                alt="Students in a workshop" 
+                className="rounded-lg shadow-xl"
+              />
+              <div className="absolute -bottom-5 -right-5 bg-white dark:bg-light-navy p-4 rounded-lg shadow-lg">
+                <div className="text-3xl font-bold text-neon-blue">5,000+</div>
+                <div className="text-gray-600 dark:text-soft-gray text-sm">Students Trained</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      
       {/* CTA Section */}
-      <section className="py-16 bg-gradient-to-r from-neon-blue to-neon-violet dark:from-blue-900 dark:to-purple-900">
+      <section className="py-16 bg-gray-50 dark:bg-light-navy">
         <div className="container-custom text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6 text-white">
+          <h2 className="text-3xl md:text-4xl font-bold mb-6 text-gray-900 dark:text-white">
             Ready to Start Your Next Project?
           </h2>
-          <p className="text-white/80 text-lg mb-8 max-w-2xl mx-auto">
+          <p className="text-gray-600 dark:text-soft-gray text-lg mb-8 max-w-2xl mx-auto">
             Join thousands of makers and engineers who trust Phytronix for their electronic components.
           </p>
           <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-            <Link to="/products" className="btn bg-white text-neon-blue hover:bg-gray-100">
+            <Link to="/products" className="btn-primary">
               Shop Now
             </Link>
-            <Link to="/contact" className="btn border border-white text-white hover:bg-white/20">
-              Contact Us
+            <Link to="/workshops" className="btn-secondary">
+              Explore Workshops
             </Link>
           </div>
         </div>

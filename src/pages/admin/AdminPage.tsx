@@ -12,6 +12,9 @@ import AdminCategoryPage from './AdminCategoryPage';
 import { Shield, AlertTriangle } from 'lucide-react';
 import ReviewManagementPage from './ReviewManagementPage';
 import OrderCancellationsPage from './OrderCancellationsPage';
+import WorkshopManagementPage from './WorkshopManagementPage';
+import WorkshopForm from './WorkshopForm';
+import WorkshopRequestsPage from './WorkshopRequestsPage';
 
 const AdminPage = () => {
   const { user } = useAuth();
@@ -73,6 +76,10 @@ const AdminPage = () => {
             <Route path="/users" element={<UserList />} />
             <Route path="/reviews" element={<ReviewManagementPage />} />
             <Route path="/cancellations" element={<OrderCancellationsPage />} />
+            <Route path="/workshops" element={<WorkshopManagementPage />} />
+            <Route path="/workshops/new" element={<WorkshopForm />} />
+            <Route path="/workshops/edit/:id" element={<WorkshopForm isEdit />} />
+            <Route path="/workshop-requests" element={<WorkshopRequestsPage />} />
             <Route path="*" element={<Navigate to="/admin" replace />} />
           </Routes>
         </main>

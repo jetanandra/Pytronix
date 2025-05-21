@@ -105,6 +105,9 @@ const Navbar: React.FC = () => {
                 </Link>
               </div>
             </div>
+            <Link to="/workshops" className="nav-link text-gray-700 dark:text-soft-gray hover:text-neon-blue dark:hover:text-neon-blue transition">
+              Workshops
+            </Link>
             <Link to="/cart" className="nav-link text-gray-700 dark:text-soft-gray hover:text-neon-blue dark:hover:text-neon-blue transition">
               Cart
             </Link>
@@ -236,6 +239,9 @@ const Navbar: React.FC = () => {
             </Link>
             <Link to="/products" className="py-2 text-gray-700 dark:text-soft-gray hover:text-neon-blue dark:hover:text-neon-blue">
               All Products
+            </Link>
+            <Link to="/workshops" className="py-2 text-gray-700 dark:text-soft-gray hover:text-neon-blue dark:hover:text-neon-blue">
+              Workshops
             </Link>
             <Link to="/cart" className="py-2 text-gray-700 dark:text-soft-gray hover:text-neon-blue dark:hover:text-neon-blue">
               Cart

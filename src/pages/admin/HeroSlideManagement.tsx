@@ -15,7 +15,8 @@ import {
   Type,
   Heading,
   AlignLeft,
-  Upload
+  Upload,
+  Move
 } from 'lucide-react';
 import { 
   getHeroSlides, 
@@ -417,6 +418,7 @@ const HeroSlideManagement: React.FC = () => {
               {formMode === 'add' ? 'Add New Slide' : 'Edit Slide'}
             </h2>
             <button
+              type="button"
               onClick={() => {
                 setFormMode(null);
                 setCurrentSlide({
@@ -638,6 +640,7 @@ const HeroSlideManagement: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         {!formMode && (
           <button
+            type="button"
             onClick={() => {
               setCurrentSlide({
                 image: '',
@@ -658,6 +661,7 @@ const HeroSlideManagement: React.FC = () => {
         )}
         
         <button
+          type="button"
           onClick={() => setPreviewMode(!previewMode)}
           className="btn-secondary flex items-center"
         >
@@ -697,6 +701,7 @@ const HeroSlideManagement: React.FC = () => {
             </p>
             {!formMode && (
               <button
+                type="button"
                 onClick={() => {
                   setCurrentSlide({
                     image: '',
@@ -732,7 +737,6 @@ const HeroSlideManagement: React.FC = () => {
                           <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}
-                            {...provided.dragHandleProps}
                             className={`bg-gray-50 dark:bg-dark-navy rounded-lg overflow-hidden border ${
                               slide.enabled 
                                 ? 'border-gray-200 dark:border-gray-700' 
@@ -740,6 +744,15 @@ const HeroSlideManagement: React.FC = () => {
                             }`}
                           >
                             <div className="flex flex-col md:flex-row">
+                              {/* Drag handle */}
+                              <div 
+                                {...provided.dragHandleProps}
+                                className="p-2 flex items-center justify-center bg-gray-100 dark:bg-gray-800 cursor-move"
+                                title="Drag to reorder"
+                              >
+                                <Move className="w-5 h-5 text-gray-500" />
+                              </div>
+                              
                               <div className="md:w-1/3 h-40 overflow-hidden">
                                 <img
                                   src={slide.image}
@@ -828,7 +841,10 @@ const HeroSlideManagement: React.FC = () => {
                                     </button>
                                     <button
                                       type="button"
-                                      onClick={() => handleEdit(slide)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEdit(slide);
+                                      }}
                                       className="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
                                       title="Edit slide"
                                     >
@@ -836,7 +852,10 @@ const HeroSlideManagement: React.FC = () => {
                                     </button>
                                     <button
                                       type="button"
-                                      onClick={() => handleDelete(slide.id)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDelete(slide.id);
+                                      }}
                                       className="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
                                       title="Delete slide"
                                     >

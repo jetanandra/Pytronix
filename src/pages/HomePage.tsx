@@ -142,7 +142,7 @@ const HomePage: React.FC = () => {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
-              className="md:w-1/2 mb-10 md:mb-0 z-10"
+              className="md:w-1/2 mb-10 md:mb-0 z-10 relative"
             >
               {heroLoading ? (
                 <div className="flex justify-center items-center h-40">
@@ -219,11 +219,15 @@ const HomePage: React.FC = () => {
                     </div>
                   ) : (
                     <Swiper
-                      modules={[Autoplay, EffectFade]}
+                      modules={[Autoplay, EffectFade, Navigation]}
                       effect="fade"
                       autoplay={{
                         delay: 4000,
                         disableOnInteraction: false,
+                      }}
+                      navigation={{
+                        prevEl: '.hero-button-prev',
+                        nextEl: '.hero-button-next',
                       }}
                       loop={true}
                       className="h-full"
@@ -345,7 +349,7 @@ const HomePage: React.FC = () => {
                         {workshop.category}
                       </span>
                       <span className="ml-2 text-sm text-gray-600 dark:text-gray-400 flex items-center">
-                        <Calendar className="w-3 h-3 mr-1" /> {workshop.duration}
+                        <Clock className="w-3 h-3 mr-1" /> {workshop.duration}
                       </span>
                     </div>
                     <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Plus, 
   Edit, 
@@ -14,7 +14,8 @@ import {
   Link as LinkIcon,
   Type,
   Heading,
-  AlignLeft
+  AlignLeft,
+  Upload
 } from 'lucide-react';
 import { 
   getHeroSlides, 
@@ -27,6 +28,7 @@ import { HeroSlide } from '../../types';
 import LoaderSpinner from '../../components/ui/LoaderSpinner';
 import { toast } from 'react-hot-toast';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { supabase } from '../../lib/supabaseClient';
 
 const HeroSlideManagement: React.FC = () => {
   const [slides, setSlides] = useState<HeroSlide[]>([]);
@@ -44,6 +46,8 @@ const HeroSlideManagement: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewMode, setPreviewMode] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchSlides();
@@ -78,6 +82,75 @@ const HeroSlideManagement: React.FC = () => {
         ...prev,
         [name]: value
       }));
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    const file = files[0];
+    
+    // Validate file is an image
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB');
+      return;
+    }
+    
+    try {
+      setUploading(true);
+      
+      // Create a unique file name
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `hero-slides/${fileName}`;
+      
+      // Check if hero-slides bucket exists, if not create it
+      const { data: buckets } = await supabase.storage.listBuckets();
+      const bucketExists = buckets?.some(bucket => bucket.name === 'hero-slides');
+      
+      if (!bucketExists) {
+        await supabase.storage.createBucket('hero-slides', {
+          public: true
+        });
+      }
+      
+      // Upload the file
+      const { error: uploadError } = await supabase.storage
+        .from('hero-slides')
+        .upload(filePath, file);
+        
+      if (uploadError) {
+        throw uploadError;
+      }
+      
+      // Get the public URL
+      const { data } = supabase.storage
+        .from('hero-slides')
+        .getPublicUrl(filePath);
+        
+      // Update the form with the image URL
+      setCurrentSlide(prev => ({
+        ...prev,
+        image: data.publicUrl
+      }));
+      
+      toast.success('Image uploaded successfully');
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast.error('Failed to upload image');
+    } finally {
+      setUploading(false);
+      // Reset the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -365,27 +438,61 @@ const HeroSlideManagement: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-soft-gray mb-1">
-                Image URL <span className="text-red-500">*</span>
+                Image <span className="text-red-500">*</span>
               </label>
-              <div className="flex items-center gap-2">
-                <div className="relative flex-grow">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <ImageIcon className="h-5 w-5 text-gray-400" />
-                  </div>
+              
+              {/* Image upload section */}
+              <div className="space-y-3">
+                {/* File upload option */}
+                <div className="flex items-center gap-2">
                   <input
-                    type="text"
-                    name="image"
-                    value={currentSlide.image || ''}
-                    onChange={handleInputChange}
-                    required
-                    className="pl-10 w-full px-4 py-2 bg-white dark:bg-dark-navy border border-gray-300 dark:border-gray-700 rounded-lg"
-                    placeholder="https://example.com/image.jpg"
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
                   />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="btn-secondary flex items-center"
+                  >
+                    {uploading ? (
+                      <LoaderSpinner size="sm" color="blue" />
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 mr-2" />
+                        Upload Image
+                      </>
+                    )}
+                  </button>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">or</span>
+                </div>
+                
+                {/* URL input option */}
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-grow">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <ImageIcon className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      name="image"
+                      value={currentSlide.image || ''}
+                      onChange={handleInputChange}
+                      required
+                      className="pl-10 w-full px-4 py-2 bg-white dark:bg-dark-navy border border-gray-300 dark:border-gray-700 rounded-lg"
+                      placeholder="https://example.com/image.jpg"
+                    />
+                  </div>
                 </div>
               </div>
+              
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 Recommended size: 1920x800px. Use high-quality images for best results.
               </p>
+              
               {currentSlide.image && (
                 <div className="mt-2">
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Preview:</p>

@@ -35,6 +35,7 @@ const ReviewManagementPage = lazy(() => import('../pages/admin/ReviewManagementP
 const WorkshopsPage = lazy(() => import('../pages/WorkshopsPage'));
 const WorkshopDetailPage = lazy(() => import('../pages/WorkshopDetailPage'));
 const WorkshopRequestPage = lazy(() => import('../pages/WorkshopRequestPage'));
+const WorkshopCategoryManagement = lazy(() => import('../pages/admin/WorkshopCategoryManagement'));
 
 const AppRoutes: React.FC = () => {
   return (

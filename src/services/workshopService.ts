@@ -5,11 +5,22 @@ export const getAllWorkshops = async (): Promise<Workshop[]> => {
   try {
     const { data, error } = await supabase
       .from('workshops')
-      .select('*')
+      .select(`
+        *,
+        category_details:workshop_categories(id, name, image)
+      `)
       .order('created_at', { ascending: false });
       
     if (error) throw error;
-    return data || [];
+    
+    // Transform the data to maintain backward compatibility
+    const transformedData = data?.map(workshop => ({
+      ...workshop,
+      // Keep the category field for backward compatibility
+      category: workshop.category_details?.name || workshop.category
+    })) || [];
+    
+    return transformedData;
   } catch (error) {
     console.error('Error fetching all workshops:', error);
     return [];
@@ -20,12 +31,24 @@ export const getWorkshopById = async (id: string): Promise<Workshop | null> => {
   try {
     const { data, error } = await supabase
       .from('workshops')
-      .select('*')
+      .select(`
+        *,
+        category_details:workshop_categories(id, name, image)
+      `)
       .eq('id', id)
       .single();
       
     if (error) throw error;
-    return data;
+    
+    // Transform to maintain backward compatibility
+    if (data) {
+      return {
+        ...data,
+        category: data.category_details?.name || data.category
+      };
+    }
+    
+    return null;
   } catch (error) {
     console.error('Error fetching workshop:', error);
     throw error;
@@ -79,16 +102,59 @@ export const getWorkshopCategories = async (): Promise<WorkshopCategory[]> => {
   }
 };
 
+export const createWorkshopCategory = async (category: Omit<WorkshopCategory, 'id' | 'created_at'>): Promise<WorkshopCategory> => {
+  const { data, error } = await supabase
+    .from('workshop_categories')
+    .insert([category])
+    .select()
+    .single();
+    
+  if (error) throw error;
+  return data;
+};
+
+export const updateWorkshopCategory = async (id: string, category: Partial<WorkshopCategory>): Promise<WorkshopCategory> => {
+  const { data, error } = await supabase
+    .from('workshop_categories')
+    .update(category)
+    .eq('id', id)
+    .select()
+    .single();
+    
+  if (error) throw error;
+  return data;
+};
+
+export const deleteWorkshopCategory = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from('workshop_categories')
+    .delete()
+    .eq('id', id);
+    
+  if (error) throw error;
+};
+
 export const getWorkshopsByCategory = async (categoryId: string): Promise<Workshop[]> => {
   try {
     const { data, error } = await supabase
       .from('workshops')
-      .select('*')
+      .select(`
+        *,
+        category_details:workshop_categories(id, name, image)
+      `)
       .eq('category_id', categoryId)
       .order('created_at', { ascending: false });
       
     if (error) throw error;
-    return data || [];
+    
+    // Transform the data to maintain backward compatibility
+    const transformedData = data?.map(workshop => ({
+      ...workshop,
+      // Keep the category field for backward compatibility
+      category: workshop.category_details?.name || workshop.category
+    })) || [];
+    
+    return transformedData;
   } catch (error) {
     console.error('Error fetching workshops by category:', error);
     return [];

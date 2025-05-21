@@ -10,12 +10,18 @@ import {
   Image as ImageIcon,
   Link as LinkIcon,
   CheckSquare,
-  Square
+  Square,
+  Layers
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import LoaderSpinner from '../../components/ui/LoaderSpinner';
-import { Workshop } from '../../types';
-import { createWorkshop, getWorkshopById, updateWorkshop } from '../../services/workshopService';
+import { Workshop, WorkshopCategory } from '../../types';
+import { 
+  createWorkshop, 
+  getWorkshopById, 
+  updateWorkshop, 
+  getWorkshopCategories 
+} from '../../services/workshopService';
 
 interface WorkshopFormProps {
   isEdit?: boolean;
@@ -28,6 +34,7 @@ const WorkshopForm: React.FC<WorkshopFormProps> = ({ isEdit = false }) => {
   const [workshop, setWorkshop] = useState<Partial<Workshop>>({
     title: '',
     category: '',
+    category_id: '',
     short_description: '',
     description: '',
     image: '',
@@ -47,6 +54,7 @@ const WorkshopForm: React.FC<WorkshopFormProps> = ({ isEdit = false }) => {
   const [learningOutcomeInput, setLearningOutcomeInput] = useState<string>('');
   const [equipmentInput, setEquipmentInput] = useState<string>('');
   const [galleryInput, setGalleryInput] = useState<string>('');
+  const [categories, setCategories] = useState<WorkshopCategory[]>([]);
   
   const editorRef = useRef<any>(null);
 
@@ -74,6 +82,21 @@ const WorkshopForm: React.FC<WorkshopFormProps> = ({ isEdit = false }) => {
 
     fetchWorkshop();
   }, [id, isEdit, navigate]);
+
+  // Fetch categories
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const categoriesData = await getWorkshopCategories();
+        setCategories(categoriesData);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        toast.error('Failed to load categories');
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -147,11 +170,22 @@ const WorkshopForm: React.FC<WorkshopFormProps> = ({ isEdit = false }) => {
     });
   };
 
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const categoryId = e.target.value;
+    const selectedCategory = categories.find(cat => cat.id === categoryId);
+    
+    setWorkshop({
+      ...workshop,
+      category_id: categoryId,
+      category: selectedCategory ? selectedCategory.name : ''
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validate form
-    if (!workshop.title || !workshop.category || !workshop.short_description || !workshop.image) {
+    if (!workshop.title || !workshop.category_id || !workshop.short_description || !workshop.image) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -244,15 +278,27 @@ const WorkshopForm: React.FC<WorkshopFormProps> = ({ isEdit = false }) => {
               <label className="block text-sm font-medium text-gray-700 dark:text-soft-gray mb-1">
                 Category <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                name="category"
-                value={workshop.category}
-                onChange={handleInputChange}
-                required
-                className="w-full px-4 py-2 bg-white dark:bg-dark-navy border border-gray-300 dark:border-gray-700 rounded-lg"
-                placeholder="e.g. Robotics, STEM, Electronics"
-              />
+              <div className="flex items-center gap-2">
+                <select
+                  name="category_id"
+                  value={workshop.category_id || ''}
+                  onChange={handleCategoryChange}
+                  required
+                  className="w-full px-4 py-2 bg-white dark:bg-dark-navy border border-gray-300 dark:border-gray-700 rounded-lg"
+                >
+                  <option value="">Select a category</option>
+                  {categories.map(category => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {categories.length === 0 && (
+                <p className="mt-1 text-sm text-yellow-600 dark:text-yellow-400">
+                  No categories available. Please create a category first.
+                </p>
+              )}
             </div>
             
             {/* Short Description */}

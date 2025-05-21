@@ -15,16 +15,18 @@ import {
   ChevronRight,
   Play,
   X,
-  Download
+  Download,
+  Layers
 } from 'lucide-react';
-import { getWorkshopById } from '../services/workshopService';
-import { Workshop } from '../types';
+import { getWorkshopById, getWorkshopCategories } from '../services/workshopService';
+import { Workshop, WorkshopCategory } from '../types';
 import LoaderSpinner from '../components/ui/LoaderSpinner';
 
 const WorkshopDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [workshop, setWorkshop] = useState<Workshop | null>(null);
+  const [categories, setCategories] = useState<WorkshopCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeImage, setActiveImage] = useState<string | null>(null);
@@ -32,7 +34,7 @@ const WorkshopDetailPage: React.FC = () => {
   const [showVideoModal, setShowVideoModal] = useState(false);
 
   useEffect(() => {
-    const fetchWorkshop = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
         if (!id) {
@@ -40,7 +42,11 @@ const WorkshopDetailPage: React.FC = () => {
           return;
         }
         
-        const workshopData = await getWorkshopById(id);
+        const [workshopData, categoriesData] = await Promise.all([
+          getWorkshopById(id),
+          getWorkshopCategories()
+        ]);
+        
         if (workshopData) {
           setWorkshop(workshopData);
           if (workshopData.gallery && workshopData.gallery.length > 0) {
@@ -49,6 +55,8 @@ const WorkshopDetailPage: React.FC = () => {
         } else {
           setError('Workshop not found');
         }
+        
+        setCategories(categoriesData);
       } catch (err) {
         console.error('Error fetching workshop:', err);
         setError('Failed to load workshop details');
@@ -57,13 +65,18 @@ const WorkshopDetailPage: React.FC = () => {
       }
     };
 
-    fetchWorkshop();
+    fetchData();
   }, [id]);
 
   const handleImageClick = (image: string) => {
     setActiveImage(image);
     setShowLightbox(true);
   };
+
+  // Find the category object that matches the workshop's category_id
+  const workshopCategory = workshop?.category_id 
+    ? categories.find(cat => cat.id === workshop.category_id)
+    : categories.find(cat => cat.name === workshop?.category);
 
   if (loading) {
     return (
@@ -96,6 +109,18 @@ const WorkshopDetailPage: React.FC = () => {
           <Link to="/" className="hover:text-neon-blue dark:hover:text-neon-blue transition">Home</Link>
           <ChevronRight className="mx-2 w-4 h-4" />
           <Link to="/workshops" className="hover:text-neon-blue dark:hover:text-neon-blue transition">Workshops</Link>
+          {workshopCategory && (
+            <>
+              <ChevronRight className="mx-2 w-4 h-4" />
+              <Link 
+                to={`/workshops/category/${workshopCategory.id}`} 
+                className="hover:text-neon-blue dark:hover:text-neon-blue transition flex items-center"
+              >
+                <Layers className="w-3 h-3 mr-1" />
+                {workshopCategory.name}
+              </Link>
+            </>
+          )}
           <ChevronRight className="mx-2 w-4 h-4" />
           <span className="truncate max-w-[200px]">{workshop.title}</span>
         </nav>
@@ -250,7 +275,7 @@ const WorkshopDetailPage: React.FC = () => {
               </p>
               <Link 
                 to={`/workshop-request?workshop=${workshop.id}`} 
-                className="btn bg-white text-neon-blue hover:bg-gray-100 w-full flex items-center justify-center"
+                className="btn bg-white text-blue-600 hover:bg-gray-100 w-full flex items-center justify-center"
               >
                 Request Workshop
               </Link>
@@ -296,6 +321,20 @@ const WorkshopDetailPage: React.FC = () => {
                     <div>
                       <span className="block text-sm font-medium text-gray-500 dark:text-gray-400">Prerequisites</span>
                       <span className="text-gray-900 dark:text-white">{workshop.prerequisites}</span>
+                    </div>
+                  </li>
+                )}
+                {workshopCategory && (
+                  <li className="flex items-start">
+                    <Layers className="w-5 h-5 text-neon-blue mt-0.5 mr-3 flex-shrink-0" />
+                    <div>
+                      <span className="block text-sm font-medium text-gray-500 dark:text-gray-400">Category</span>
+                      <Link 
+                        to={`/workshops/category/${workshopCategory.id}`}
+                        className="text-neon-blue hover:underline"
+                      >
+                        {workshopCategory.name}
+                      </Link>
                     </div>
                   </li>
                 )}

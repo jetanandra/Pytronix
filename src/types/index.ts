@@ -171,6 +171,12 @@ export interface Workshop {
   id: string;
   title: string;
   category: string;
+  category_id?: string;
+  category_details?: {
+    id: string;
+    name: string;
+    image: string;
+  };
   short_description: string;
   description: string;
   image: string;
@@ -194,6 +200,7 @@ export interface WorkshopCategory {
   description: string;
   image: string;
   created_at: string;
+  workshop_count?: number;
 }
 
 export interface WorkshopRequest {

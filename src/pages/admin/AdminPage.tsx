@@ -15,6 +15,7 @@ import OrderCancellationsPage from './OrderCancellationsPage';
 import WorkshopManagementPage from './WorkshopManagementPage';
 import WorkshopForm from './WorkshopForm';
 import WorkshopRequestsPage from './WorkshopRequestsPage';
+import WorkshopCategoryManagement from './WorkshopCategoryManagement';
 
 const AdminPage = () => {
   const { user } = useAuth();
@@ -80,6 +81,7 @@ const AdminPage = () => {
             <Route path="/workshops/new" element={<WorkshopForm />} />
             <Route path="/workshops/edit/:id" element={<WorkshopForm isEdit />} />
             <Route path="/workshop-requests" element={<WorkshopRequestsPage />} />
+            <Route path="/workshop-categories" element={<WorkshopCategoryManagement />} />
             <Route path="*" element={<Navigate to="/admin" replace />} />
           </Routes>
         </main>

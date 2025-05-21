@@ -60,6 +60,11 @@ const AdminSidebar = () => {
       icon: <Calendar className="w-5 h-5" />
     },
     {
+      name: 'Workshop Categories',
+      path: '/admin/workshop-categories',
+      icon: <Layers className="w-5 h-5" />
+    },
+    {
       name: 'Workshop Requests',
       path: '/admin/workshop-requests',
       icon: <MessageSquare className="w-5 h-5" />

@@ -16,6 +16,7 @@ import WorkshopManagementPage from './WorkshopManagementPage';
 import WorkshopForm from './WorkshopForm';
 import WorkshopRequestsPage from './WorkshopRequestsPage';
 import WorkshopCategoryManagement from './WorkshopCategoryManagement';
+import HeroSlideManagement from './HeroSlideManagement';
 
 const AdminPage = () => {
   const { user } = useAuth();
@@ -82,6 +83,7 @@ const AdminPage = () => {
             <Route path="/workshops/edit/:id" element={<WorkshopForm isEdit />} />
             <Route path="/workshop-requests" element={<WorkshopRequestsPage />} />
             <Route path="/workshop-categories" element={<WorkshopCategoryManagement />} />
+            <Route path="/hero-slides" element={<HeroSlideManagement />} />
             <Route path="*" element={<Navigate to="/admin" replace />} />
           </Routes>
         </main>

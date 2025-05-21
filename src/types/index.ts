@@ -224,3 +224,15 @@ export interface WorkshopRequest {
     category: string;
   };
 }
+
+export interface HeroSlide {
+  id: string;
+  image: string;
+  title: string;
+  subtitle: string;
+  cta_text?: string;
+  cta_link?: string;
+  enabled: boolean;
+  order: number;
+  created_at?: string;
+}

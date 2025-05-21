@@ -14,7 +14,8 @@ import {
   Layers,
   Star,
   Calendar,
-  MessageSquare
+  MessageSquare,
+  Image
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -68,6 +69,11 @@ const AdminSidebar = () => {
       name: 'Workshop Requests',
       path: '/admin/workshop-requests',
       icon: <MessageSquare className="w-5 h-5" />
+    },
+    {
+      name: 'Hero Slides',
+      path: '/admin/hero-slides',
+      icon: <Image className="w-5 h-5" />
     },
     {
       name: 'Users',

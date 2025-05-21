@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, Zap, Cpu, Wifi, ShipIcon as ChipIcon, Shield, Calendar, Lightbulb, BookOpen, Users, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -7,41 +7,76 @@ import { getAllProducts, getAllCategories } from '../services/productService';
 import { getAllWorkshops } from '../services/workshopService';
 import LoaderSpinner from '../components/ui/LoaderSpinner';
 import { Product, Category, Workshop } from '../types';
+import { getHeroSlides } from '../services/settingsService';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay, Pagination, Navigation, EffectFade } from 'swiper/modules';
+
+// Import Swiper styles
+import 'swiper/css';
+import 'swiper/css/pagination';
+import 'swiper/css/navigation';
+import 'swiper/css/effect-fade';
 
 const HomePage: React.FC = () => {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [featuredWorkshops, setFeaturedWorkshops] = useState<Workshop[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [heroSlides, setHeroSlides] = useState<any[]>([]);
+  const [heroLoading, setHeroLoading] = useState<boolean>(true);
   const navigate = useNavigate();
   
-  // Hero slider state
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const heroImages = [
+  // Default hero slides in case API fails
+  const defaultHeroSlides = [
     {
-      url: "https://images.pexels.com/photos/163100/circuit-circuit-board-resistor-computer-163100.jpeg",
+      id: "1",
+      image: "https://images.pexels.com/photos/163100/circuit-circuit-board-resistor-computer-163100.jpeg",
       title: "Build The Future",
-      subtitle: "With Phytronix"
+      subtitle: "With Phytronix",
+      cta_text: "Explore Products",
+      cta_link: "/products",
+      enabled: true,
+      order: 1
     },
     {
-      url: "https://images.pexels.com/photos/2582937/pexels-photo-2582937.jpeg",
+      id: "2",
+      image: "https://images.pexels.com/photos/2582937/pexels-photo-2582937.jpeg",
       title: "Cutting-Edge",
-      subtitle: "IoT Components"
+      subtitle: "IoT Components",
+      cta_text: "Shop Now",
+      cta_link: "/products",
+      enabled: true,
+      order: 2
     },
     {
-      url: "https://images.pexels.com/photos/1472443/pexels-photo-1472443.jpeg",
+      id: "3",
+      image: "https://images.pexels.com/photos/1472443/pexels-photo-1472443.jpeg",
       title: "Innovative",
-      subtitle: "Tech Solutions"
+      subtitle: "Tech Solutions",
+      cta_text: "Learn More",
+      cta_link: "/about",
+      enabled: true,
+      order: 3
     },
     {
-      url: "https://images.pexels.com/photos/3861969/pexels-photo-3861969.jpeg",
+      id: "4",
+      image: "https://images.pexels.com/photos/3861969/pexels-photo-3861969.jpeg",
       title: "Empower",
-      subtitle: "Your Projects"
+      subtitle: "Your Projects",
+      cta_text: "Get Started",
+      cta_link: "/products",
+      enabled: true,
+      order: 4
     },
     {
-      url: "https://images.pexels.com/photos/2336123/pexels-photo-2336123.jpeg",
+      id: "5",
+      image: "https://images.pexels.com/photos/2336123/pexels-photo-2336123.jpeg",
       title: "Connect",
-      subtitle: "Your Ideas"
+      subtitle: "Your Ideas",
+      cta_text: "Discover More",
+      cta_link: "/workshops",
+      enabled: true,
+      order: 5
     }
   ];
   
@@ -72,21 +107,30 @@ const HomePage: React.FC = () => {
     
     fetchData();
     
-    // Auto-advance slides
-    const slideInterval = setInterval(() => {
-      setCurrentSlide(prev => (prev + 1) % heroImages.length);
-    }, 5000);
+    // Fetch hero slides
+    const fetchHeroSlides = async () => {
+      try {
+        setHeroLoading(true);
+        const slides = await getHeroSlides();
+        if (slides && slides.length > 0) {
+          // Sort by order field
+          const sortedSlides = slides
+            .filter(slide => slide.enabled)
+            .sort((a, b) => a.order - b.order);
+          setHeroSlides(sortedSlides);
+        } else {
+          setHeroSlides(defaultHeroSlides);
+        }
+      } catch (error) {
+        console.error('Error fetching hero slides:', error);
+        setHeroSlides(defaultHeroSlides);
+      } finally {
+        setHeroLoading(false);
+      }
+    };
     
-    return () => clearInterval(slideInterval);
+    fetchHeroSlides();
   }, []);
-  
-  const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % heroImages.length);
-  };
-  
-  const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + heroImages.length) % heroImages.length);
-  };
   
   return (
     <>
@@ -98,24 +142,66 @@ const HomePage: React.FC = () => {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
-              className="md:w-1/2 mb-10 md:mb-0"
+              className="md:w-1/2 mb-10 md:mb-0 z-10"
             >
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-gray-900 dark:text-white">
-                <span className="block">{heroImages[currentSlide].title}</span>
-                <span className="text-neon-blue dark:text-neon-blue neon-text">{heroImages[currentSlide].subtitle}</span>
-              </h1>
-              <p className="text-xl text-gray-600 dark:text-soft-gray mb-8">
-                India's premier destination for electronics and IoT components. 
-                From Arduino to Raspberry Pi, sensors to actuators.
-              </p>
-              <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
-                <Link to="/products" className="btn-primary text-center">
-                  Explore Products
-                </Link>
-                <Link to="/workshops" className="btn-secondary text-center">
-                  Discover Workshops
-                </Link>
-              </div>
+              {heroLoading ? (
+                <div className="flex justify-center items-center h-40">
+                  <LoaderSpinner size="md" color="blue" />
+                </div>
+              ) : (
+                <Swiper
+                  modules={[Autoplay, Pagination, Navigation, EffectFade]}
+                  effect="fade"
+                  autoplay={{
+                    delay: 4000,
+                    disableOnInteraction: false,
+                  }}
+                  pagination={{
+                    clickable: true,
+                    el: '.hero-pagination',
+                    bulletClass: 'w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 inline-block mx-1 cursor-pointer transition-all duration-300',
+                    bulletActiveClass: 'w-3 h-3 bg-neon-blue',
+                  }}
+                  navigation={{
+                    prevEl: '.hero-button-prev',
+                    nextEl: '.hero-button-next',
+                  }}
+                  loop={true}
+                  className="hero-swiper"
+                >
+                  {heroSlides.map((slide, index) => (
+                    <SwiperSlide key={slide.id || index}>
+                      <div>
+                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-gray-900 dark:text-white">
+                          <span className="block">{slide.title}</span>
+                          <span className="text-neon-blue dark:text-neon-blue neon-text">{slide.subtitle}</span>
+                        </h1>
+                        <p className="text-xl text-gray-600 dark:text-soft-gray mb-8">
+                          India's premier destination for electronics and IoT components. 
+                          From Arduino to Raspberry Pi, sensors to actuators.
+                        </p>
+                        <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                          {slide.cta_link && slide.cta_text ? (
+                            <Link to={slide.cta_link} className="btn-primary text-center">
+                              {slide.cta_text}
+                            </Link>
+                          ) : (
+                            <Link to="/products" className="btn-primary text-center">
+                              Explore Products
+                            </Link>
+                          )}
+                          <Link to="/workshops" className="btn-secondary text-center">
+                            Discover Workshops
+                          </Link>
+                        </div>
+                      </div>
+                    </SwiperSlide>
+                  ))}
+                </Swiper>
+              )}
+              
+              {/* Custom pagination */}
+              <div className="hero-pagination flex justify-center mt-6"></div>
             </motion.div>
             
             <motion.div 
@@ -127,50 +213,47 @@ const HomePage: React.FC = () => {
               <div className="relative">
                 <div className="w-full h-80 md:h-96 lg:h-[500px] relative overflow-hidden rounded-lg">
                   {/* Image Slider */}
-                  <div className="absolute inset-0 flex transition-transform duration-500 ease-in-out" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
-                    {heroImages.map((image, index) => (
-                      <div key={index} className="min-w-full h-full flex-shrink-0">
-                        <img 
-                          src={image.url} 
-                          alt={`Electronics slide ${index + 1}`} 
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-r from-neon-blue/30 to-neon-violet/30 rounded-lg mix-blend-overlay"></div>
-                      </div>
-                    ))}
-                  </div>
+                  {heroLoading ? (
+                    <div className="flex justify-center items-center h-full bg-gray-200 dark:bg-gray-800">
+                      <LoaderSpinner size="lg" color="blue" />
+                    </div>
+                  ) : (
+                    <Swiper
+                      modules={[Autoplay, EffectFade]}
+                      effect="fade"
+                      autoplay={{
+                        delay: 4000,
+                        disableOnInteraction: false,
+                      }}
+                      loop={true}
+                      className="h-full"
+                    >
+                      {heroSlides.map((slide, index) => (
+                        <SwiperSlide key={slide.id || index} className="h-full">
+                          <img 
+                            src={slide.image} 
+                            alt={`Hero slide ${index + 1}`} 
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-r from-neon-blue/30 to-neon-violet/30 rounded-lg mix-blend-overlay"></div>
+                        </SwiperSlide>
+                      ))}
+                    </Swiper>
+                  )}
                   
-                  {/* Slider Controls */}
+                  {/* Custom navigation buttons */}
                   <button 
-                    onClick={prevSlide}
-                    className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white rounded-full p-2 transition-colors z-10"
+                    className="hero-button-prev absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white rounded-full p-2 transition-colors z-10"
                     aria-label="Previous slide"
                   >
                     <ChevronLeft className="w-6 h-6" />
                   </button>
                   <button 
-                    onClick={nextSlide}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white rounded-full p-2 transition-colors z-10"
+                    className="hero-button-next absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white rounded-full p-2 transition-colors z-10"
                     aria-label="Next slide"
                   >
                     <ChevronRight className="w-6 h-6" />
                   </button>
-                  
-                  {/* Slide Indicators */}
-                  <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2 z-10">
-                    {heroImages.map((_, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setCurrentSlide(index)}
-                        className={`w-2.5 h-2.5 rounded-full transition-colors ${
-                          currentSlide === index 
-                            ? 'bg-white' 
-                            : 'bg-white/50 hover:bg-white/80'
-                        }`}
-                        aria-label={`Go to slide ${index + 1}`}
-                      />
-                    ))}
-                  </div>
                 </div>
                 
                 {/* Animated glowing elements */}

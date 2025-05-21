@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Zap, Cpu, Wifi, ShipIcon as ChipIcon, Shield, Calendar, Lightbulb, BookOpen } from 'lucide-react';
+import { ArrowRight, Zap, Cpu, Wifi, ShipIcon as ChipIcon, Shield, Calendar, Lightbulb, BookOpen, Users, Settings } from 'lucide-react';
 import ProductCard from '../components/product/ProductCard';
 import { getAllProducts, getAllCategories } from '../services/productService';
 import { getAllWorkshops } from '../services/workshopService';
@@ -198,7 +198,8 @@ const HomePage: React.FC = () => {
               ))}
             </div>
           </div>
-        </section>
+        </div>
+      </section>
       )}
       
       {/* Features Section */}

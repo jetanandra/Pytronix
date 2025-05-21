@@ -64,7 +64,7 @@ const HomePage: React.FC = () => {
       {/* Hero Section with Swiper */}
       <section className="pt-20 relative overflow-hidden">
         {loading ? (
-          <div className="h-[500px] flex items-center justify-center">
+          <div className="h-[600px] flex items-center justify-center">
             <LoaderSpinner size="lg" color="blue" />
           </div>
         ) : heroSlides.length > 0 ? (
@@ -72,7 +72,7 @@ const HomePage: React.FC = () => {
             spaceBetween={0}
             slidesPerView={1}
             autoplay={{
-              delay: 4000,
+              delay: 5000,
               disableOnInteraction: false,
             }}
             pagination={{
@@ -86,7 +86,7 @@ const HomePage: React.FC = () => {
               nextEl: '.hero-button-next',
             }}
             modules={[Autoplay, Pagination, Navigation]}
-            className="h-[500px] w-full"
+            className="h-[600px] w-full"
           >
             {heroSlides.map((slide) => (
               <SwiperSlide key={slide.id}>
@@ -96,35 +96,26 @@ const HomePage: React.FC = () => {
                     alt={slide.title} 
                     className="w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent flex flex-col justify-center p-8 md:p-16">
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent flex flex-col justify-center p-8 md:p-16">
                     <div className="container-custom">
-                      <motion.h1 
+                      <motion.div
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5 }}
-                        className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-white max-w-2xl"
+                        transition={{ duration: 0.7 }}
+                        className="max-w-2xl"
                       >
-                        {slide.title}
-                      </motion.h1>
-                      <motion.p 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: 0.2 }}
-                        className="text-xl text-white/90 mb-8 max-w-xl"
-                      >
-                        {slide.subtitle}
-                      </motion.p>
-                      {slide.cta_text && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ duration: 0.5, delay: 0.4 }}
-                        >
-                          <Link to={slide.cta_link || '#'} className="btn-primary text-center px-8 py-3 text-lg">
+                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-white font-orbitron leading-tight">
+                          {slide.title}
+                        </h1>
+                        <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-xl">
+                          {slide.subtitle}
+                        </p>
+                        {slide.cta_text && (
+                          <Link to={slide.cta_link || '#'} className="btn-primary text-center px-8 py-3 text-lg inline-block">
                             {slide.cta_text}
                           </Link>
-                        </motion.div>
-                      )}
+                        )}
+                      </motion.div>
                     </div>
                   </div>
                 </div>
@@ -132,18 +123,18 @@ const HomePage: React.FC = () => {
             ))}
             
             {/* Custom navigation buttons */}
-            <div className="hero-button-prev absolute left-4 top-1/2 transform -translate-y-1/2 z-10 bg-black/30 hover:bg-black/50 text-white rounded-full w-10 h-10 flex items-center justify-center cursor-pointer">
-              <ArrowRight className="w-5 h-5 transform rotate-180" />
+            <div className="hero-button-prev absolute left-4 top-1/2 transform -translate-y-1/2 z-10 bg-black/30 hover:bg-black/50 text-white rounded-full w-12 h-12 flex items-center justify-center cursor-pointer transition-all">
+              <ArrowRight className="w-6 h-6 transform rotate-180" />
             </div>
-            <div className="hero-button-next absolute right-4 top-1/2 transform -translate-y-1/2 z-10 bg-black/30 hover:bg-black/50 text-white rounded-full w-10 h-10 flex items-center justify-center cursor-pointer">
-              <ArrowRight className="w-5 h-5" />
+            <div className="hero-button-next absolute right-4 top-1/2 transform -translate-y-1/2 z-10 bg-black/30 hover:bg-black/50 text-white rounded-full w-12 h-12 flex items-center justify-center cursor-pointer transition-all">
+              <ArrowRight className="w-6 h-6" />
             </div>
             
             {/* Custom pagination */}
-            <div className="hero-pagination absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10 flex justify-center"></div>
+            <div className="hero-pagination absolute bottom-6 left-1/2 transform -translate-x-1/2 z-10 flex justify-center"></div>
           </Swiper>
         ) : (
-          <div className="h-[500px] bg-gradient-to-b from-white to-gray-100 dark:from-dark-navy dark:to-light-navy overflow-hidden">
+          <div className="h-[600px] bg-gradient-to-b from-white to-gray-100 dark:from-dark-navy dark:to-light-navy overflow-hidden">
             <div className="container-custom h-full flex flex-col md:flex-row items-center">
               <motion.div 
                 initial={{ opacity: 0, x: -20 }}

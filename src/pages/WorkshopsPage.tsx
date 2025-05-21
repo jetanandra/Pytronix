@@ -9,7 +9,9 @@ import LoaderSpinner from '../components/ui/LoaderSpinner';
 const WorkshopsPage: React.FC = () => {
   const [categories, setCategories] = useState<WorkshopCategory[]>([]);
   const [featuredWorkshops, setFeaturedWorkshops] = useState<Workshop[]>([]);
+  const [allWorkshops, setAllWorkshops] = useState<Workshop[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAllWorkshops, setShowAllWorkshops] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -23,6 +25,7 @@ const WorkshopsPage: React.FC = () => {
         // Get featured workshops (up to 3)
         const featured = workshopsData.filter(w => w.is_featured).slice(0, 3);
         setFeaturedWorkshops(featured);
+        setAllWorkshops(workshopsData);
         setCategories(categoriesData);
       } catch (error) {
         console.error('Error fetching workshop data:', error);
@@ -99,9 +102,9 @@ const WorkshopsPage: React.FC = () => {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5, delay: 0.4 }}
             >
-              <Link to="#categories" className="btn-primary text-lg px-8 py-3">
+              <a href="#categories" className="btn-primary text-lg px-8 py-3">
                 Explore Workshops
-              </Link>
+              </a>
             </motion.div>
           </div>
         </div>
@@ -131,6 +134,68 @@ const WorkshopsPage: React.FC = () => {
                   key={workshop.id}
                   whileHover={{ y: -10 }}
                   className="bg-white dark:bg-dark-navy rounded-xl shadow-lg overflow-hidden"
+                >
+                  <div className="h-48 overflow-hidden">
+                    <img 
+                      src={workshop.image} 
+                      alt={workshop.title} 
+                      className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                    />
+                  </div>
+                  <div className="p-6">
+                    <div className="flex items-center mb-2">
+                      <span className="px-3 py-1 text-xs font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full">
+                        {workshop.category}
+                      </span>
+                      <span className="ml-2 text-sm text-gray-600 dark:text-gray-400 flex items-center">
+                        <Clock className="w-3 h-3 mr-1" /> {workshop.duration}
+                      </span>
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                      {workshop.title}
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
+                      {workshop.short_description}
+                    </p>
+                    <Link 
+                      to={`/workshop/${workshop.id}`} 
+                      className="text-neon-blue font-medium hover:text-blue-700 flex items-center"
+                    >
+                      Learn more <ArrowRight className="w-4 h-4 ml-1" />
+                    </Link>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+            
+            <div className="text-center mt-8">
+              <button 
+                onClick={() => setShowAllWorkshops(true)}
+                className="btn-secondary"
+              >
+                View All Workshops
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* All Workshops Section - Shown when "View All" is clicked */}
+      {showAllWorkshops && (
+        <section className="py-16 bg-white dark:bg-dark-navy">
+          <div className="container-custom">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">
+              All Workshops
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {allWorkshops.map((workshop) => (
+                <motion.div
+                  key={workshop.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="bg-white dark:bg-light-navy rounded-xl shadow-lg overflow-hidden"
                 >
                   <div className="h-48 overflow-hidden">
                     <img 

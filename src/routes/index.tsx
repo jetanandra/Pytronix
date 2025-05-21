@@ -94,6 +94,8 @@ const AppRoutes: React.FC = () => {
               
               {/* Workshop Routes */}
               <Route path="/workshops" element={<WorkshopsPage />} />
+              <Route path="/workshops/all" element={<WorkshopsPage />} />
+              <Route path="/workshops/category/:id" element={<WorkshopsPage />} />
               <Route path="/workshop/:id" element={<WorkshopDetailPage />} />
               <Route path="/workshop-request" element={<WorkshopRequestPage />} />
               

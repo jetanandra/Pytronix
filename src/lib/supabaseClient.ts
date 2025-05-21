@@ -13,7 +13,9 @@ export const supabase = createClient(
   {
     auth: {
       persistSession: true,
-      detectSessionInUrl: true
+      detectSessionInUrl: true,
+      storageKey: 'supabase.auth.token',
+      storage: window.localStorage
     },
     global: {
       fetch: (...args) => fetch(...args)

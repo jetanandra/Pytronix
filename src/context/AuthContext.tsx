@@ -22,16 +22,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let mounted = true;
+
     // Get initial session
     const getInitialSession = async () => {
       try {
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
-        setSession(initialSession);
-        setUser(initialSession?.user ?? null);
+        const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          throw sessionError;
+        }
+
+        if (mounted) {
+          if (initialSession) {
+            setSession(initialSession);
+            setUser(initialSession.user);
+          } else {
+            // If no session exists, ensure we're in a clean state
+            setSession(null);
+            setUser(null);
+            await supabase.auth.signOut(); // Clear any potentially invalid tokens
+          }
+        }
       } catch (err) {
         console.error('Error getting initial session:', err);
+        // Clear the invalid session state
+        if (mounted) {
+          setSession(null);
+          setUser(null);
+          await supabase.auth.signOut();
+        }
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
@@ -39,15 +63,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, newSession) => {
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-        setLoading(false);
+      async (event, newSession) => {
+        if (mounted) {
+          if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+            setSession(null);
+            setUser(null);
+          } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            setSession(newSession);
+            setUser(newSession?.user ?? null);
+          }
+          setLoading(false);
+        }
       }
     );
 
-    // Cleanup the subscription
+    // Cleanup
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -66,7 +98,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       // After successful login, sync user_metadata to profiles if missing or incomplete
-      const user = data?.user || (await supabase.auth.getUser()).data?.user;
+      const user = data?.user;
       if (user) {
         const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
         const meta = user.user_metadata || {};
@@ -97,7 +129,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       setError(null);
       
-      // Pass name and phone as user_metadata
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -143,6 +174,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toast.error(error.message);
         return;
       }
+      
+      // Clear session and user state after successful sign out
+      setSession(null);
+      setUser(null);
       
       toast.success('Signed out successfully');
     } catch (err) {

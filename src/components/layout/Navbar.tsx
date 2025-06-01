@@ -91,15 +91,17 @@ const Navbar: React.FC = () => {
       <nav className="container-custom py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center group">
+          <Link to="/" className="flex items-center group min-w-0">
             <img
               src={LogoPhytronix}
               alt="Phytronix Logo"
-              className="h-10 w-10 md:h-12 md:w-12 transition-transform duration-200 group-hover:scale-105 drop-shadow-lg bg-white/80 dark:bg-dark-navy/80 rounded-full p-1 border border-neon-blue dark:border-neon-blue"
+              className="h-9 w-9 sm:h-10 sm:w-10 md:h-12 md:w-12 transition-transform duration-200 group-hover:scale-105 drop-shadow-lg bg-white/80 dark:bg-dark-navy/80 rounded-full p-1 border border-neon-blue dark:border-neon-blue"
               style={{ boxShadow: theme === 'dark' ? '0 2px 16px 0 #0ff4f8' : '0 2px 16px 0 #0a3d62' }}
             />
-            <span className="ml-3 text-xl md:text-2xl font-orbitron font-bold text-neon-blue dark:text-neon-blue neon-text tracking-wide select-none">
-              PHYTRONIX
+            <span className="ml-2 text-lg sm:text-xl md:text-2xl font-orbitron font-bold text-neon-blue dark:text-neon-blue neon-text tracking-wide select-none truncate max-w-[80px] sm:max-w-[120px] md:max-w-none">
+              <span className="block whitespace-normal break-words leading-tight">
+                PHYTRONIX
+              </span>
             </span>
           </Link>
           
@@ -180,7 +182,7 @@ const Navbar: React.FC = () => {
           </div>
           
           {/* Right Navigation (Search, Theme, Cart) */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-4">
             {/* Search Toggle */}
             <button 
               onClick={() => setSearchOpen(!searchOpen)}
@@ -205,10 +207,10 @@ const Navbar: React.FC = () => {
               </button>
             )}
             
-            {/* Theme Toggle */}
+            {/* Theme Toggle (Desktop Only) */}
             <button 
               onClick={toggleTheme}
-              className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-light-navy transition"
+              className="hidden md:inline-flex p-2 rounded-full hover:bg-gray-200 dark:hover:bg-light-navy transition"
               aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {theme === 'dark' ? (
@@ -244,13 +246,13 @@ const Navbar: React.FC = () => {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="pt-4"
+            className="pt-3 md:pt-4 px-1 md:px-0"
           >
-            <form className="relative rounded-lg shadow-sm" onSubmit={handleSearch}>
+            <form className="relative rounded-lg shadow-sm w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto" onSubmit={handleSearch}>
               <input
                 type="text"
                 placeholder="Search for products..."
-                className="w-full pl-10 pr-10 py-2 bg-white dark:bg-light-navy border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-neon-blue"
+                className="w-full pl-10 pr-10 py-2 bg-white dark:bg-light-navy border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-neon-blue text-sm sm:text-base"
                 autoFocus
                 value={searchValue}
                 onChange={e => setSearchValue(e.target.value)}
@@ -272,9 +274,23 @@ const Navbar: React.FC = () => {
           className="md:hidden bg-white dark:bg-dark-navy shadow-lg"
         >
           <div className="container-custom py-4 flex flex-col space-y-4">
-            <Link to="/" className="py-2 text-gray-700 dark:text-soft-gray hover:text-neon-blue dark:hover:text-neon-blue">
-              Home
-            </Link>
+            <div className="flex items-center justify-between w-full">
+              <Link to="/" className="py-2 text-gray-700 dark:text-soft-gray hover:text-neon-blue dark:hover:text-neon-blue">
+                Home
+              </Link>
+              {/* Theme Toggle (Mobile Only, Icon Only) */}
+              <button 
+                onClick={toggleTheme}
+                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-light-navy transition ml-2"
+                aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                {theme === 'dark' ? (
+                  <Sun className="w-5 h-5 text-soft-gray" />
+                ) : (
+                  <Moon className="w-5 h-5 text-gray-700" />
+                )}
+              </button>
+            </div>
             <Link to="/products" className="py-2 text-gray-700 dark:text-soft-gray hover:text-neon-blue dark:hover:text-neon-blue">
               All Products
             </Link>
@@ -323,6 +339,16 @@ const Navbar: React.FC = () => {
           </div>
         </motion.div>
       )}
+      <style>{`
+        @media (max-width: 767px) {
+          header .font-orbitron {
+            font-size: 1rem !important;
+            max-width: none !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+          }
+        }
+      `}</style>
     </header>
   );
 };

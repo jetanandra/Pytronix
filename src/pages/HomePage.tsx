@@ -252,7 +252,7 @@ const HomePage: React.FC = () => {
               <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
                 Featured Workshops
               </h2>
-              <Link to="/workshops" className="flex items-center text-neon-blue hover:text-blue-700 transition">
+              <Link to="/workshops" className="flex items-center text-neon-blue hover:text-blue-700 transition whitespace-nowrap px-2">
                 View all <ArrowRight className="w-4 h-4 ml-1" />
               </Link>
             </div>
@@ -367,7 +367,7 @@ const HomePage: React.FC = () => {
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
               Featured Products
             </h2>
-            <Link to="/products" className="flex items-center text-neon-blue hover:text-blue-700 transition">
+            <Link to="/products" className="flex items-center text-neon-blue hover:text-blue-700 transition whitespace-nowrap px-2">
               View all <ArrowRight className="w-4 h-4 ml-1" />
             </Link>
           </div>

@@ -15,7 +15,8 @@ import {
   Star,
   Calendar,
   MessageSquare,
-  Image
+  Image,
+  Mail
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -74,6 +75,11 @@ const AdminSidebar = () => {
       name: 'Hero Slides',
       path: '/admin/hero-slides',
       icon: <Image className="w-5 h-5" />
+    },
+    {
+      name: 'Email System',
+      path: '/admin/email',
+      icon: <Mail className="w-5 h-5" />
     },
     {
       name: 'Users',

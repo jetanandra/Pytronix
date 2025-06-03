@@ -17,6 +17,7 @@
     "framer-motion": "^11.0.3",
     "jspdf": "^3.0.1",
     "lucide-react": "^0.344.0",
+    "nodemailer": "^6.9.9",
     "pdfkit": "^0.17.1",
     "pdfkit-table": "^0.1.99",
     "razorpay": "^2.9.6",

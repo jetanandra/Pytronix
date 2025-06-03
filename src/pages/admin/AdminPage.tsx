@@ -86,7 +86,7 @@ const AdminPage = () => {
             <Route path="/workshop-categories" element={<WorkshopCategoryManagement />} />
             <Route path="/hero-slides" element={<HeroSlideManagement />} />
             <Route path="/email" element={<EmailManagementPage />} />
-            <Route path="*" element={<Navigate to="/admin" replace />} />
+            <Route path="*" element={<Navigate to="/admin\" replace />} />
           </Routes>
         </main>
       </div>

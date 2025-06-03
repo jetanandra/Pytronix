@@ -206,7 +206,7 @@ const EmailTemplateManager: React.FC<EmailTemplateManagerProps> = ({ onClose }) 
                   disabled={sending || !testEmail}
                   className="px-4 py-2 bg-neon-blue text-white rounded-r-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                 >
-                  {sending ? <LoaderSpinner size="sm" color="blue" /> : <Send className="w-4 h-4" />}
+                  {sending ? <LoaderSpinner size="sm\" color="blue" /> : <Send className="w-4 h-4" />}
                 </button>
               </div>
             </div>
@@ -243,7 +243,7 @@ const EmailTemplateManager: React.FC<EmailTemplateManagerProps> = ({ onClose }) 
                 className="btn-primary flex items-center justify-center"
               >
                 {saving ? (
-                  <LoaderSpinner size="sm" color="blue" />
+                  <LoaderSpinner size="sm\" color="blue" />
                 ) : (
                   <>
                     <Save className="w-4 h-4 mr-2" />
@@ -318,7 +318,7 @@ const EmailTemplateManager: React.FC<EmailTemplateManagerProps> = ({ onClose }) 
               className="btn-primary"
             >
               {saving ? (
-                <LoaderSpinner size="sm" color="blue" />
+                <LoaderSpinner size="sm\" color="blue" />
               ) : (
                 <>
                   <Save className="w-4 h-4 mr-2" />

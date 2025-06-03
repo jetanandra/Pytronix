@@ -71,6 +71,7 @@ const EmailTemplateManager: React.FC<EmailTemplateManagerProps> = ({ onClose }) 
       // Prepare test data based on template type
       const testData: Record<string, any> = {
         to_email: testEmail,
+        template_content: templateHtml,
         customer_name: 'Test Customer',
         order_id: 'TEST12345',
         order_date: new Date().toLocaleDateString(),
@@ -123,8 +124,8 @@ const EmailTemplateManager: React.FC<EmailTemplateManagerProps> = ({ onClose }) 
         next_steps: 'Our team will contact you shortly to finalize the details.'
       };
       
-      // Send the test email
-      const success = await sendEmail(testData, `template_${selectedTemplate}`);
+      // Send the test email without specifying a template ID
+      const success = await sendEmail(testData);
       
       if (success) {
         toast.success(`Test email sent to ${testEmail}`);

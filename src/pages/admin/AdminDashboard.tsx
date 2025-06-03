@@ -315,16 +315,6 @@ const AdminDashboard = () => {
           
           <div className="mb-4 flex flex-wrap gap-2">
             <button
-              onClick={() => handleQuickFilter(5)} // June
-              className={`px-3 py-1 text-xs rounded-full ${
-                selectedMonth === '5' 
-                  ? 'bg-neon-blue text-white' 
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-              }`}
-            >
-              June
-            </button>
-            <button
               onClick={() => handleQuickFilter(new Date().getMonth())}
               className={`px-3 py-1 text-xs rounded-full ${
                 selectedMonth === new Date().getMonth().toString() 

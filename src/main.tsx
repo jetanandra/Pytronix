@@ -8,10 +8,6 @@ import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
 import { ProfileProvider } from './context/ProfileContext';
 import { NotificationProvider } from './context/NotificationContext';
-import { initializeEmailSystem } from './services/emailTriggers';
-
-// Initialize email notification system
-initializeEmailSystem();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

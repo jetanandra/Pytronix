@@ -1,8 +1,6 @@
 import { supabase } from '../lib/supabaseClient';
 import { Order, OrderStatus } from '../types';
 import { toast } from 'react-hot-toast';
-import { triggerOrderConfirmationEmail, triggerPaymentConfirmationEmail } from './emailTriggers';
-import { sendOrderShippedEmail, sendOrderStatusEmail } from './emailService';
 
 interface OrderDetails {
   user_id: string;
@@ -10,7 +8,6 @@ interface OrderDetails {
   shipping_address: any;
   payment_details: any;
   status?: string;
-  email?: string;
 }
 
 /**
@@ -146,8 +143,7 @@ export const createOrder = async (orderDetails: OrderDetails, cartItems: any[] =
     // Always set user_id to the authenticated user to prevent RLS policy violations
     const safeOrderDetails = {
       ...orderDetails,
-      user_id: session.user.id,
-      email: session.user.email // Add email to order for notifications
+      user_id: session.user.id
     };
 
     // Insert the order
@@ -204,35 +200,6 @@ export const createOrder = async (orderDetails: OrderDetails, cartItems: any[] =
     } catch (notificationError) {
       console.error('Error creating order notification:', notificationError);
       // Don't throw error for notification failure
-    }
-    
-    // Send order confirmation email
-    try {
-      // Get the full order with items for the email
-      const { data: fullOrder } = await supabase
-        .from('orders')
-        .select(`
-          *,
-          items:order_items (
-            *,
-            product:products (
-              id,
-              name,
-              price,
-              discount_price,
-              image
-            )
-          )
-        `)
-        .eq('id', orderId)
-        .single();
-        
-      if (fullOrder) {
-        triggerOrderConfirmationEmail(fullOrder);
-      }
-    } catch (emailError) {
-      console.error('Error sending order confirmation email:', emailError);
-      // Don't throw error for email failure
     }
     
     return { id: data.id, order_id };
@@ -348,36 +315,6 @@ export const updateOrderStatus = async (orderId: string, status: OrderStatus) =>
             message: notificationMessage,
             data: { order_id: orderId }
           }]);
-          
-        // Send email notification
-        try {
-          // Get the full order with items for the email
-          const { data: fullOrder } = await supabase
-            .from('orders')
-            .select(`
-              *,
-              items:order_items (
-                *,
-                product:products (
-                  id,
-                  name,
-                  price,
-                  discount_price,
-                  image
-                )
-              )
-            `)
-            .eq('id', orderId)
-            .single();
-            
-          if (fullOrder) {
-            // Send email based on status
-            await sendOrderStatusEmail(fullOrder, status);
-          }
-        } catch (emailError) {
-          console.error(`Error sending ${status} email:`, emailError);
-          // Don't throw error for email failure
-        }
       } catch (notificationError) {
         console.error('Error creating status notification:', notificationError);
         // Don't throw error for notification failure
@@ -555,55 +492,5 @@ export const getOrderStatusCounts = async () => {
       delivered: 0,
       cancelled: 0
     };
-  }
-};
-
-// Helper function to send order status email
-const sendOrderStatusEmail = async (order: Order, status: OrderStatus): Promise<void> => {
-  try {
-    // Get the full order with items
-    const { data: fullOrder, error } = await supabase
-      .from('orders')
-      .select(`
-        *,
-        items:order_items (
-          *,
-          product:products (
-            id,
-            name,
-            price,
-            discount_price,
-            image
-          )
-        )
-      `)
-      .eq('id', order.id)
-      .single();
-      
-    if (error) {
-      console.error('Error fetching order for email:', error);
-      return;
-    }
-    
-    // Send email based on status
-    switch (status) {
-      case 'processing':
-        await sendOrderStatusEmail(fullOrder, 'processing');
-        break;
-      case 'shipped':
-        // Send shipping confirmation email
-        await sendOrderShippedEmail(fullOrder);
-        break;
-      case 'delivered':
-        // Send delivery confirmation email
-        await sendOrderStatusEmail(fullOrder, 'delivered');
-        break;
-      case 'cancelled':
-        // Send cancellation email
-        await sendOrderStatusEmail(fullOrder, 'cancelled');
-        break;
-    }
-  } catch (error) {
-    console.error(`Error sending ${status} email:`, error);
   }
 };

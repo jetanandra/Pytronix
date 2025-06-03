@@ -71,6 +71,7 @@ const EmailTemplateManager: React.FC<EmailTemplateManagerProps> = ({ onClose }) 
       // Prepare test data based on template type
       const testData: Record<string, any> = {
         to_email: testEmail,
+        subject: `Test Email - ${selectedTemplate}`,
         template_content: templateHtml,
         customer_name: 'Test Customer',
         order_id: 'TEST12345',
@@ -106,7 +107,7 @@ const EmailTemplateManager: React.FC<EmailTemplateManagerProps> = ({ onClose }) 
         feedback_link: `${window.location.origin}/feedback/test`,
         login_link: `${window.location.origin}/login`,
         products_link: `${window.location.origin}/products`,
-        support_email: 'support@phytronix.com',
+        support_email: 'support@phytronix.co.in',
         support_phone: '+91 9876 543 210',
         reset_link: `${window.location.origin}/reset-password?token=test`,
         contact_name: 'Test Contact',

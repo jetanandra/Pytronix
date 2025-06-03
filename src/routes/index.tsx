@@ -46,7 +46,7 @@ const AppRoutes: React.FC = () => {
         <Layout>
           <Suspense fallback={
             <div className="min-h-screen flex items-center justify-center">
-              <LoaderSpinner size="lg" color="blue" />
+              <LoaderSpinner size="lg\" color="blue" />
             </div>
           }>
             <Routes>

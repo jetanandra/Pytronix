@@ -393,7 +393,7 @@ const AdminDashboard = () => {
           
           <div className="space-y-4">
             {stats.alerts.newOrders > 0 && (
-              <Link to="/admin/orders?filter=pending" className="block">
+              <Link to="/admin/orders?filter=pending\" className="block">
                 <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 rounded-r-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition">
                   <div className="flex items-start">
                     <AlertTriangle className="w-5 h-5 text-red-500 mr-3 flex-shrink-0 mt-0.5" />

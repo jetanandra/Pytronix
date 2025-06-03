@@ -494,3 +494,143 @@ export const getOrderStatusCounts = async () => {
     };
   }
 };
+
+/**
+ * Get monthly order statistics
+ */
+export const getMonthlyOrderStats = async (month: number) => {
+  try {
+    const currentYear = new Date().getFullYear();
+    const startDate = new Date(currentYear, month, 1);
+    const endDate = new Date(currentYear, month + 1, 0);
+    
+    const { data, error } = await supabase
+      .from('orders')
+      .select('status, created_at')
+      .gte('created_at', startDate.toISOString())
+      .lte('created_at', endDate.toISOString());
+      
+    if (error) {
+      console.error('Error fetching monthly orders:', error);
+      throw error;
+    }
+    
+    const counts = {
+      pending: 0,
+      processing: 0,
+      shipped: 0,
+      delivered: 0,
+      cancelled: 0
+    };
+    
+    data.forEach(order => {
+      if (counts.hasOwnProperty(order.status)) {
+        counts[order.status as keyof typeof counts]++;
+      }
+    });
+    
+    return counts;
+  } catch (error) {
+    console.error('Error in getMonthlyOrderStats:', error);
+    return {
+      pending: 0,
+      processing: 0,
+      shipped: 0,
+      delivered: 0,
+      cancelled: 0
+    };
+  }
+};
+
+/**
+ * Generate sales report for a specific period
+ */
+export const generateSalesReport = async (startDate: Date, endDate: Date) => {
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select(`
+        *,
+        items:order_items (
+          *,
+          product:products (
+            id,
+            name,
+            price,
+            discount_price,
+            category_id
+          )
+        )
+      `)
+      .gte('created_at', startDate.toISOString())
+      .lte('created_at', endDate.toISOString())
+      .order('created_at', { ascending: false });
+      
+    if (error) {
+      console.error('Error generating sales report:', error);
+      throw error;
+    }
+    
+    // Calculate report metrics
+    const totalOrders = data.length;
+    const totalRevenue = data.reduce((sum, order) => {
+      if (order.status === 'delivered') {
+        return sum + Number(order.total);
+      }
+      return sum;
+    }, 0);
+    
+    const ordersByStatus = {
+      pending: 0,
+      processing: 0,
+      shipped: 0,
+      delivered: 0,
+      cancelled: 0
+    };
+    
+    data.forEach(order => {
+      if (ordersByStatus.hasOwnProperty(order.status)) {
+        ordersByStatus[order.status as keyof typeof ordersByStatus]++;
+      }
+    });
+    
+    // Calculate product sales
+    const productSales = {};
+    data.forEach(order => {
+      if (order.items) {
+        order.items.forEach(item => {
+          const productId = item.product_id;
+          const productName = item.product?.name || 'Unknown Product';
+          const quantity = item.quantity;
+          const price = item.price;
+          
+          if (!productSales[productId]) {
+            productSales[productId] = {
+              id: productId,
+              name: productName,
+              totalQuantity: 0,
+              totalRevenue: 0
+            };
+          }
+          
+          productSales[productId].totalQuantity += quantity;
+          productSales[productId].totalRevenue += price * quantity;
+        });
+      }
+    });
+    
+    return {
+      period: {
+        start: startDate.toISOString(),
+        end: endDate.toISOString()
+      },
+      totalOrders,
+      totalRevenue,
+      ordersByStatus,
+      productSales: Object.values(productSales)
+    };
+  } catch (error) {
+    console.error('Error in generateSalesReport:', error);
+    throw error;
+  }
+};

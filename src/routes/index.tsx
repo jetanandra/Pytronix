@@ -30,6 +30,7 @@ const OrderDetailPage = lazy(() => import('../pages/OrderDetailPage'));
 const OrderDetail = lazy(() => import('../pages/admin/OrderDetail'));
 const OrderCancellationsPage = lazy(() => import('../pages/admin/OrderCancellationsPage'));
 const ReviewManagementPage = lazy(() => import('../pages/admin/ReviewManagementPage'));
+const ReportsPage = lazy(() => import('../pages/admin/ReportsPage'));
 
 // Workshop System Pages
 const WorkshopsPage = lazy(() => import('../pages/WorkshopsPage'));
@@ -83,6 +84,11 @@ const AppRoutes: React.FC = () => {
               <Route path="/admin/orders/:id" element={
                 <AuthGuard>
                   <OrderDetail />
+                </AuthGuard>
+              } />
+              <Route path="/admin/reports" element={
+                <AuthGuard>
+                  <ReportsPage />
                 </AuthGuard>
               } />
               <Route path="/about" element={<AboutUsPage />} />

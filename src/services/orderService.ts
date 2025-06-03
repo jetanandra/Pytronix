@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabaseClient';
 import { Order, OrderStatus } from '../types';
 import { toast } from 'react-hot-toast';
 import { triggerOrderConfirmationEmail, triggerPaymentConfirmationEmail } from './emailTriggers';
+import { sendOrderShippedEmail, sendOrderStatusEmail } from './emailService';
 
 interface OrderDetails {
   user_id: string;
@@ -9,6 +10,7 @@ interface OrderDetails {
   shipping_address: any;
   payment_details: any;
   status?: string;
+  email?: string;
 }
 
 /**
@@ -586,11 +588,11 @@ const sendOrderStatusEmail = async (order: Order, status: OrderStatus): Promise<
     // Send email based on status
     switch (status) {
       case 'processing':
-        await triggerOrderConfirmationEmail(fullOrder);
+        await sendOrderStatusEmail(fullOrder, 'processing');
         break;
       case 'shipped':
         // Send shipping confirmation email
-        await sendOrderStatusEmail(fullOrder, 'shipped');
+        await sendOrderShippedEmail(fullOrder);
         break;
       case 'delivered':
         // Send delivery confirmation email

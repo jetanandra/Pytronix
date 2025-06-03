@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabaseClient';
 import { toast } from 'react-hot-toast';
 import { Order, OrderCancellationRequest, Workshop, WorkshopRequest } from '../types';
+import emailTemplates from './emailTemplates';
 
 // EmailJS service configuration
 const EMAILJS_SERVICE_ID = 'service_5ourdnd';
@@ -26,8 +27,11 @@ export const sendEmail = async (
       company_name: 'Phytronix',
       company_address: 'Nakari-2, Glob House, Phytronix, North Lakhimpur 787001, India',
       company_phone: '+91 9876 543 210',
-      company_email: 'support@phytronix.com',
-      company_logo: `${window.location.origin}/src/Logo/Logo-Phytronix.svg`,
+      company_email: 'noreply@phytronix.co.in',
+      company_logo: 'https://i.postimg.cc/sDjx6nv8/Logo-Phytronix.png',
+      from_name: 'Phytronix',
+      from_email: 'noreply@phytronix.co.in',
+      reply_to: 'support@phytronix.co.in'
     };
 
     // Send the email
@@ -44,6 +48,72 @@ export const sendEmail = async (
     console.error('Error sending email:', error);
     return false;
   }
+};
+
+/**
+ * Process HTML template with data
+ */
+const processTemplate = (template: string, data: Record<string, any>): string => {
+  let processedTemplate = template;
+  
+  // Replace placeholders with actual data
+  Object.entries(data).forEach(([key, value]) => {
+    const regex = new RegExp(`{{${key}}}`, 'g');
+    processedTemplate = processedTemplate.replace(regex, String(value));
+  });
+  
+  // Process conditional blocks
+  const conditionalRegex = /{{#if ([^}]+)}}([\s\S]*?){{\/if}}/g;
+  processedTemplate = processedTemplate.replace(conditionalRegex, (match, condition, content) => {
+    const conditionValue = data[condition];
+    return conditionValue ? content : '';
+  });
+  
+  // Process order items for HTML table
+  if (data.order_items) {
+    try {
+      const items = JSON.parse(data.order_items);
+      let itemsHtml = '';
+      
+      items.forEach((item: any) => {
+        itemsHtml += `
+          <tr>
+            <td>${item.name}</td>
+            <td>${item.quantity}</td>
+            <td>₹${item.price.toLocaleString()}</td>
+          </tr>
+        `;
+      });
+      
+      processedTemplate = processedTemplate.replace('{{order_items_html}}', itemsHtml);
+    } catch (error) {
+      console.error('Error processing order items:', error);
+    }
+  }
+  
+  // Process cart items for HTML table
+  if (data.cart_items) {
+    try {
+      const items = JSON.parse(data.cart_items);
+      let itemsHtml = '';
+      
+      items.forEach((item: any) => {
+        itemsHtml += `
+          <tr>
+            <td>${item.name}</td>
+            <td>${item.quantity}</td>
+            <td>₹${item.price.toLocaleString()}</td>
+          </tr>
+        `;
+      });
+      
+      processedTemplate = processedTemplate.replace('{{cart_items_html}}', itemsHtml);
+    } catch (error) {
+      console.error('Error processing cart items:', error);
+    }
+  }
+  
+  return processedTemplate;
 };
 
 /**
@@ -75,10 +145,11 @@ export const sendOrderConfirmationEmail = async (order: Order): Promise<boolean>
     const shippingAddress = order.shipping_address;
     const formattedAddress = `${shippingAddress.full_name}, ${shippingAddress.street}, ${shippingAddress.city}, ${shippingAddress.state} ${shippingAddress.postal_code}, ${shippingAddress.country}`;
 
-    // Prepare template parameters
-    const templateParams = {
-      to_email: userEmail,
-      subject: `Order Confirmation #${order.id.substring(0, 8)}`,
+    // Get the template
+    const template = emailTemplates.orderConfirmation;
+    
+    // Process the template with data
+    const processedTemplate = processTemplate(template, {
       customer_name: shippingAddress.full_name,
       order_id: order.id.substring(0, 8),
       order_date: new Date(order.created_at).toLocaleDateString('en-IN', {
@@ -93,12 +164,70 @@ export const sendOrderConfirmationEmail = async (order: Order): Promise<boolean>
       order_status: order.status.charAt(0).toUpperCase() + order.status.slice(1),
       order_link: `${window.location.origin}/orders/${order.id}`,
       estimated_delivery: getEstimatedDeliveryDate(new Date()),
+    });
+
+    // Prepare template parameters
+    const templateParams = {
+      to_email: userEmail,
+      subject: `Order Confirmation #${order.id.substring(0, 8)}`,
+      template_content: processedTemplate
     };
 
     // Send the email
-    return await sendEmail(templateParams, 'template_order_confirmation');
+    return await sendEmail(templateParams);
   } catch (error) {
     console.error('Error sending order confirmation email:', error);
+    return false;
+  }
+};
+
+/**
+ * Send order shipped email
+ */
+export const sendOrderShippedEmail = async (order: Order): Promise<boolean> => {
+  try {
+    if (!order || !order.shipping_address) {
+      console.error('Invalid order data for email');
+      return false;
+    }
+
+    // Get user email
+    const userEmail = order.email;
+    if (!userEmail) {
+      console.error('No email address found for order');
+      return false;
+    }
+
+    // Format shipping address
+    const shippingAddress = order.shipping_address;
+    const formattedAddress = `${shippingAddress.full_name}, ${shippingAddress.street}, ${shippingAddress.city}, ${shippingAddress.state} ${shippingAddress.postal_code}, ${shippingAddress.country}`;
+
+    // Get the template
+    const template = emailTemplates.orderShipped;
+    
+    // Process the template with data
+    const processedTemplate = processTemplate(template, {
+      customer_name: shippingAddress.full_name,
+      order_id: order.id.substring(0, 8),
+      tracking_id: order.tracking_id || 'Not available',
+      shipping_carrier: order.shipping_carrier || 'Our shipping partner',
+      tracking_url: order.tracking_url || '',
+      shipping_address: formattedAddress,
+      estimated_delivery: getEstimatedDeliveryDate(new Date()),
+      order_link: `${window.location.origin}/orders/${order.id}`
+    });
+
+    // Prepare template parameters
+    const templateParams = {
+      to_email: userEmail,
+      subject: `Your Order #${order.id.substring(0, 8)} Has Been Shipped`,
+      template_content: processedTemplate
+    };
+
+    // Send the email
+    return await sendEmail(templateParams);
+  } catch (error) {
+    console.error('Error sending order shipped email:', error);
     return false;
   }
 };
@@ -123,10 +252,11 @@ export const sendPaymentConfirmationEmail = async (
       return false;
     }
 
-    // Prepare template parameters
-    const templateParams = {
-      to_email: userEmail,
-      subject: `Payment Confirmation for Order #${order.id.substring(0, 8)}`,
+    // Get the template
+    const template = emailTemplates.paymentConfirmation;
+    
+    // Process the template with data
+    const processedTemplate = processTemplate(template, {
       customer_name: order.shipping_address.full_name,
       order_id: order.id.substring(0, 8),
       payment_id: paymentId,
@@ -140,10 +270,17 @@ export const sendPaymentConfirmationEmail = async (
       payment_amount: `₹${order.total.toLocaleString('en-IN')}`,
       payment_method: 'Online Payment (Razorpay)',
       order_link: `${window.location.origin}/orders/${order.id}`
+    });
+
+    // Prepare template parameters
+    const templateParams = {
+      to_email: userEmail,
+      subject: `Payment Confirmation for Order #${order.id.substring(0, 8)}`,
+      template_content: processedTemplate
     };
 
     // Send the email
-    return await sendEmail(templateParams, 'template_payment_confirmation');
+    return await sendEmail(templateParams);
   } catch (error) {
     console.error('Error sending payment confirmation email:', error);
     return false;
@@ -170,62 +307,54 @@ export const sendOrderStatusEmail = async (
       return false;
     }
 
-    // Determine template ID and subject based on status
-    let templateId: string;
+    // Determine template and subject based on status
+    let template: string;
     let subject: string;
-    let statusMessage: string;
 
     switch (status) {
-      case 'processing':
-        templateId = 'template_order_processing';
-        subject = `Your Order #${order.id.substring(0, 8)} is Being Processed`;
-        statusMessage = 'Your order is now being processed. We\'ll update you when it ships.';
-        break;
       case 'shipped':
-        templateId = 'template_order_shipped';
-        subject = `Your Order #${order.id.substring(0, 8)} Has Been Shipped`;
-        statusMessage = 'Great news! Your order has been shipped.';
-        break;
+        return sendOrderShippedEmail(order);
       case 'delivered':
-        templateId = 'template_order_delivered';
+        template = emailTemplates.orderDelivered;
         subject = `Your Order #${order.id.substring(0, 8)} Has Been Delivered`;
-        statusMessage = 'Your order has been delivered. Enjoy your purchase!';
         break;
       case 'cancelled':
-        templateId = 'template_order_cancelled';
+        template = emailTemplates.orderCancelled;
         subject = `Your Order #${order.id.substring(0, 8)} Has Been Cancelled`;
-        statusMessage = 'Your order has been cancelled. Please contact support if you have any questions.';
         break;
+      case 'processing':
       default:
-        console.error('Invalid order status for email');
-        return false;
+        template = emailTemplates.orderConfirmation;
+        subject = `Your Order #${order.id.substring(0, 8)} is Being Processed`;
+        break;
     }
 
-    // Prepare tracking information if available
-    let trackingInfo = '';
-    if (status === 'shipped' && order.tracking_id) {
-      trackingInfo = `
-        Tracking Number: ${order.tracking_id}
-        Carrier: ${order.shipping_carrier || 'Our shipping partner'}
-        ${order.tracking_url ? `Track your package: ${order.tracking_url}` : ''}
-      `;
-    }
+    // Format shipping address
+    const shippingAddress = order.shipping_address;
+    const formattedAddress = `${shippingAddress.full_name}, ${shippingAddress.street}, ${shippingAddress.city}, ${shippingAddress.state} ${shippingAddress.postal_code}, ${shippingAddress.country}`;
+
+    // Process the template with data
+    const processedTemplate = processTemplate(template, {
+      customer_name: shippingAddress.full_name,
+      order_id: order.id.substring(0, 8),
+      order_date: new Date(order.created_at).toLocaleDateString('en-IN'),
+      shipping_address: formattedAddress,
+      delivery_date: new Date().toLocaleDateString('en-IN'),
+      cancellation_date: new Date().toLocaleDateString('en-IN'),
+      cancellation_reason: 'Customer request',
+      order_link: `${window.location.origin}/orders/${order.id}`,
+      review_link: `${window.location.origin}/orders/${order.id}#reviews`
+    });
 
     // Prepare template parameters
     const templateParams = {
       to_email: userEmail,
       subject: subject,
-      customer_name: order.shipping_address.full_name,
-      order_id: order.id.substring(0, 8),
-      order_date: new Date(order.created_at).toLocaleDateString('en-IN'),
-      order_status: status.charAt(0).toUpperCase() + status.slice(1),
-      status_message: statusMessage,
-      tracking_info: trackingInfo,
-      order_link: `${window.location.origin}/orders/${order.id}`
+      template_content: processedTemplate
     };
 
     // Send the email
-    return await sendEmail(templateParams, templateId);
+    return await sendEmail(templateParams);
   } catch (error) {
     console.error(`Error sending ${status} email:`, error);
     return false;
@@ -233,113 +362,117 @@ export const sendOrderStatusEmail = async (
 };
 
 /**
- * Send cancellation/replacement request confirmation email
+ * Send abandoned cart email
  */
-export const sendRequestConfirmationEmail = async (
-  request: OrderCancellationRequest,
-  order: Order
+export const sendAbandonedCartEmail = async (
+  userEmail: string,
+  userName: string,
+  cartItems: any[]
 ): Promise<boolean> => {
   try {
-    if (!order || !order.shipping_address) {
-      console.error('Invalid order data for request email');
-      return false;
-    }
+    // Format cart items for the email
+    const formattedItems = cartItems.map(item => ({
+      name: item.product.name,
+      quantity: item.quantity,
+      price: (item.product.discount_price || item.product.price) * item.quantity
+    }));
 
-    // Get user email
-    const userEmail = order.email;
-    if (!userEmail) {
-      console.error('No email address found for order');
-      return false;
-    }
+    // Calculate cart total
+    const cartTotal = cartItems.reduce((total, item) => 
+      total + (item.product.discount_price || item.product.price) * item.quantity, 0);
 
-    // Determine template ID and subject based on request type
-    const templateId = request.type === 'cancel' 
-      ? 'template_cancellation_request' 
-      : 'template_replacement_request';
+    // Get the template
+    const template = emailTemplates.abandonedCart;
     
-    const subject = request.type === 'cancel'
-      ? `Cancellation Request Received for Order #${order.id.substring(0, 8)}`
-      : `Replacement Request Received for Order #${order.id.substring(0, 8)}`;
+    // Process the template with data
+    const processedTemplate = processTemplate(template, {
+      customer_name: userName,
+      cart_items: JSON.stringify(formattedItems),
+      cart_total: `₹${cartTotal.toLocaleString('en-IN')}`,
+      cart_link: `${window.location.origin}/cart`,
+      expiry_time: '48 hours',
+      unsubscribe_link: `${window.location.origin}/unsubscribe`
+    });
 
     // Prepare template parameters
     const templateParams = {
       to_email: userEmail,
-      subject: subject,
-      customer_name: order.shipping_address.full_name,
-      order_id: order.id.substring(0, 8),
-      request_type: request.type === 'cancel' ? 'cancellation' : 'replacement',
-      request_date: new Date().toLocaleDateString('en-IN'),
-      request_reason: request.reason,
-      order_link: `${window.location.origin}/orders/${order.id}`,
-      estimated_response_time: '1-2 business days'
+      subject: 'Complete Your Purchase at Phytronix',
+      template_content: processedTemplate
     };
 
     // Send the email
-    return await sendEmail(templateParams, templateId);
+    return await sendEmail(templateParams);
   } catch (error) {
-    console.error('Error sending request confirmation email:', error);
+    console.error('Error sending abandoned cart email:', error);
     return false;
   }
 };
 
 /**
- * Send request status update email
+ * Send welcome email to new users
  */
-export const sendRequestStatusEmail = async (
-  request: OrderCancellationRequest,
-  order: Order
+export const sendWelcomeEmail = async (
+  userEmail: string,
+  userName: string
 ): Promise<boolean> => {
   try {
-    if (!order || !order.shipping_address) {
-      console.error('Invalid order data for request status email');
-      return false;
-    }
-
-    // Get user email
-    const userEmail = order.email;
-    if (!userEmail) {
-      console.error('No email address found for order');
-      return false;
-    }
-
-    // Determine template ID and subject based on request type and status
-    let templateId: string;
-    let subject: string;
-
-    if (request.type === 'cancel') {
-      templateId = request.status === 'approved' 
-        ? 'template_cancellation_approved' 
-        : 'template_cancellation_rejected';
-      
-      subject = request.status === 'approved'
-        ? `Cancellation Request Approved for Order #${order.id.substring(0, 8)}`
-        : `Cancellation Request Rejected for Order #${order.id.substring(0, 8)}`;
-    } else {
-      templateId = request.status === 'approved' 
-        ? 'template_replacement_approved' 
-        : 'template_replacement_rejected';
-      
-      subject = request.status === 'approved'
-        ? `Replacement Request Approved for Order #${order.id.substring(0, 8)}`
-        : `Replacement Request Rejected for Order #${order.id.substring(0, 8)}`;
-    }
+    // Get the template
+    const template = emailTemplates.welcome;
+    
+    // Process the template with data
+    const processedTemplate = processTemplate(template, {
+      customer_name: userName,
+      login_link: `${window.location.origin}/login`,
+      products_link: `${window.location.origin}/products`,
+      support_email: 'support@phytronix.co.in',
+      support_phone: '+91 9876 543 210'
+    });
 
     // Prepare template parameters
     const templateParams = {
       to_email: userEmail,
-      subject: subject,
-      customer_name: order.shipping_address.full_name,
-      order_id: order.id.substring(0, 8),
-      request_type: request.type === 'cancel' ? 'cancellation' : 'replacement',
-      request_status: request.status,
-      admin_response: request.admin_response || 'No additional information provided.',
-      order_link: `${window.location.origin}/orders/${order.id}`
+      subject: 'Welcome to Phytronix!',
+      template_content: processedTemplate
     };
 
     // Send the email
-    return await sendEmail(templateParams, templateId);
+    return await sendEmail(templateParams);
   } catch (error) {
-    console.error('Error sending request status email:', error);
+    console.error('Error sending welcome email:', error);
+    return false;
+  }
+};
+
+/**
+ * Send password reset email
+ */
+export const sendPasswordResetEmail = async (
+  userEmail: string,
+  resetLink: string
+): Promise<boolean> => {
+  try {
+    // Get the template
+    const template = emailTemplates.passwordReset;
+    
+    // Process the template with data
+    const processedTemplate = processTemplate(template, {
+      reset_link: resetLink,
+      expiry_time: '1 hour',
+      support_email: 'support@phytronix.co.in'
+    });
+
+    // Prepare template parameters
+    const templateParams = {
+      to_email: userEmail,
+      subject: 'Reset Your Phytronix Password',
+      template_content: processedTemplate
+    };
+
+    // Send the email
+    return await sendEmail(templateParams);
+  } catch (error) {
+    console.error('Error sending password reset email:', error);
     return false;
   }
 };
@@ -368,10 +501,11 @@ export const sendWorkshopRequestEmail = async (
       })
     ).join(', ');
 
-    // Prepare template parameters
-    const templateParams = {
-      to_email: userEmail,
-      subject: 'Workshop Request Confirmation',
+    // Get the template
+    const template = emailTemplates.workshopRequest;
+    
+    // Process the template with data
+    const processedTemplate = processTemplate(template, {
       contact_name: request.contact_name,
       institution_name: request.institution_name,
       institution_type: request.institution_type,
@@ -381,187 +515,19 @@ export const sendWorkshopRequestEmail = async (
       additional_requirements: request.additional_requirements || 'None specified',
       request_date: new Date().toLocaleDateString('en-IN'),
       estimated_response_time: '2-3 business days'
+    });
+
+    // Prepare template parameters
+    const templateParams = {
+      to_email: userEmail,
+      subject: 'Workshop Request Confirmation',
+      template_content: processedTemplate
     };
 
     // Send the email
-    return await sendEmail(templateParams, 'template_workshop_request');
+    return await sendEmail(templateParams);
   } catch (error) {
     console.error('Error sending workshop request email:', error);
-    return false;
-  }
-};
-
-/**
- * Send workshop request status update email
- */
-export const sendWorkshopRequestStatusEmail = async (
-  request: WorkshopRequest,
-  workshop?: Workshop
-): Promise<boolean> => {
-  try {
-    // Get user email
-    const userEmail = request.contact_email;
-    if (!userEmail) {
-      console.error('No email address found for workshop request');
-      return false;
-    }
-
-    // Determine template ID and subject based on status
-    const templateId = request.status === 'approved' 
-      ? 'template_workshop_approved' 
-      : 'template_workshop_rejected';
-    
-    const subject = request.status === 'approved'
-      ? 'Workshop Request Approved'
-      : 'Workshop Request Not Approved';
-
-    // Prepare template parameters
-    const templateParams = {
-      to_email: userEmail,
-      subject: subject,
-      contact_name: request.contact_name,
-      institution_name: request.institution_name,
-      workshop_title: workshop?.title || 'Requested Workshop',
-      request_status: request.status,
-      admin_response: request.admin_response || 'No additional information provided.',
-      next_steps: request.status === 'approved' 
-        ? 'Our team will contact you shortly to finalize the details and schedule the workshop.'
-        : 'Please feel free to submit another request or contact our support team for more information.'
-    };
-
-    // Send the email
-    return await sendEmail(templateParams, templateId);
-  } catch (error) {
-    console.error('Error sending workshop request status email:', error);
-    return false;
-  }
-};
-
-/**
- * Send abandoned cart reminder email
- */
-export const sendAbandonedCartEmail = async (
-  userEmail: string,
-  userName: string,
-  cartItems: any[]
-): Promise<boolean> => {
-  try {
-    // Format cart items for the email
-    const formattedItems = cartItems.map(item => ({
-      name: item.product.name,
-      quantity: item.quantity,
-      price: (item.product.discount_price || item.product.price) * item.quantity
-    }));
-
-    // Calculate cart total
-    const cartTotal = cartItems.reduce((total, item) => 
-      total + (item.product.discount_price || item.product.price) * item.quantity, 0);
-
-    // Prepare template parameters
-    const templateParams = {
-      to_email: userEmail,
-      subject: 'Complete Your Purchase at Phytronix',
-      customer_name: userName,
-      cart_items: JSON.stringify(formattedItems),
-      cart_total: `₹${cartTotal.toLocaleString('en-IN')}`,
-      cart_link: `${window.location.origin}/cart`,
-      expiry_time: '48 hours'
-    };
-
-    // Send the email
-    return await sendEmail(templateParams, 'template_abandoned_cart');
-  } catch (error) {
-    console.error('Error sending abandoned cart email:', error);
-    return false;
-  }
-};
-
-/**
- * Send order feedback request email
- */
-export const sendFeedbackRequestEmail = async (
-  order: Order
-): Promise<boolean> => {
-  try {
-    if (!order || !order.shipping_address) {
-      console.error('Invalid order data for feedback email');
-      return false;
-    }
-
-    // Get user email
-    const userEmail = order.email;
-    if (!userEmail) {
-      console.error('No email address found for order');
-      return false;
-    }
-
-    // Prepare template parameters
-    const templateParams = {
-      to_email: userEmail,
-      subject: `How was your Phytronix order? (#${order.id.substring(0, 8)})`,
-      customer_name: order.shipping_address.full_name,
-      order_id: order.id.substring(0, 8),
-      order_date: new Date(order.created_at).toLocaleDateString('en-IN'),
-      feedback_link: `${window.location.origin}/feedback/${order.id}`,
-      review_link: `${window.location.origin}/orders/${order.id}#reviews`
-    };
-
-    // Send the email
-    return await sendEmail(templateParams, 'template_feedback_request');
-  } catch (error) {
-    console.error('Error sending feedback request email:', error);
-    return false;
-  }
-};
-
-/**
- * Send welcome email to new users
- */
-export const sendWelcomeEmail = async (
-  userEmail: string,
-  userName: string
-): Promise<boolean> => {
-  try {
-    // Prepare template parameters
-    const templateParams = {
-      to_email: userEmail,
-      subject: 'Welcome to Phytronix!',
-      customer_name: userName,
-      login_link: `${window.location.origin}/login`,
-      products_link: `${window.location.origin}/products`,
-      support_email: 'support@phytronix.com',
-      support_phone: '+91 9876 543 210'
-    };
-
-    // Send the email
-    return await sendEmail(templateParams, 'template_welcome');
-  } catch (error) {
-    console.error('Error sending welcome email:', error);
-    return false;
-  }
-};
-
-/**
- * Send password reset email
- */
-export const sendPasswordResetEmail = async (
-  userEmail: string,
-  resetLink: string
-): Promise<boolean> => {
-  try {
-    // Prepare template parameters
-    const templateParams = {
-      to_email: userEmail,
-      subject: 'Reset Your Phytronix Password',
-      reset_link: resetLink,
-      expiry_time: '1 hour',
-      support_email: 'support@phytronix.com'
-    };
-
-    // Send the email
-    return await sendEmail(templateParams, 'template_password_reset');
-  } catch (error) {
-    console.error('Error sending password reset email:', error);
     return false;
   }
 };

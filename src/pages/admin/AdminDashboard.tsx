@@ -99,6 +99,7 @@ const AdminDashboard = () => {
     },
     alerts: {
       newOrders: 0,
+      newProcessingOrders: 0,
       replacementRequests: 0,
       cancellationRequests: 0,
       workshopRequests: 0,
@@ -109,6 +110,10 @@ const AdminDashboard = () => {
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const currentMonth = new Date().getMonth();
     return currentMonth.toString();
+  });
+  
+  const [selectedYear, setSelectedYear] = useState(() => {
+    return new Date().getFullYear().toString();
   });
   
   const [monthlyStats, setMonthlyStats] = useState({
@@ -123,6 +128,12 @@ const AdminDashboard = () => {
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
+  
+  // Generate years for dropdown (current year and 5 years back)
+  const years = Array.from({ length: 6 }, (_, i) => {
+    const year = new Date().getFullYear() - i;
+    return year.toString();
+  });
   
   const fetchData = async () => {
     try {
@@ -160,6 +171,7 @@ const AdminDashboard = () => {
       
       // Calculate alerts
       const newOrders = orders.filter(o => o.status === 'pending').length;
+      const newProcessingOrders = orders.filter(o => o.status === 'processing').length;
       const pendingReplacements = cancellationRequests.filter(r => r.status === 'pending' && r.type === 'exchange').length;
       const pendingCancellations = cancellationRequests.filter(r => r.status === 'pending' && r.type === 'cancel').length;
       const pendingWorkshopRequests = workshopRequests.filter(w => w.status === 'pending').length;
@@ -174,6 +186,7 @@ const AdminDashboard = () => {
         ordersByStatus: orderStatusCounts,
         alerts: {
           newOrders,
+          newProcessingOrders,
           replacementRequests: pendingReplacements,
           cancellationRequests: pendingCancellations,
           workshopRequests: pendingWorkshopRequests,
@@ -206,7 +219,7 @@ const AdminDashboard = () => {
     };
     
     fetchMonthlyData();
-  }, [selectedMonth]);
+  }, [selectedMonth, selectedYear]);
   
   const handleRefresh = () => {
     setRefreshing(true);
@@ -215,6 +228,10 @@ const AdminDashboard = () => {
   
   const handleMonthChange = (e) => {
     setSelectedMonth(e.target.value);
+  };
+  
+  const handleYearChange = (e) => {
+    setSelectedYear(e.target.value);
   };
   
   const handleQuickFilter = (month) => {
@@ -310,6 +327,16 @@ const AdminDashboard = () => {
                   <option key={index} value={index}>{month}</option>
                 ))}
               </select>
+              
+              <select
+                value={selectedYear}
+                onChange={handleYearChange}
+                className="bg-white dark:bg-dark-navy border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-1 text-sm"
+              >
+                {years.map((year) => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
             </div>
           </div>
           
@@ -383,16 +410,34 @@ const AdminDashboard = () => {
           
           <div className="space-y-4">
             {stats.alerts.newOrders > 0 && (
-              <Link to="/admin/orders?filter=pending\" className="block">
+              <Link to="/admin/orders?filter=pending" className="block">
                 <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 rounded-r-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition">
                   <div className="flex items-start">
                     <AlertTriangle className="w-5 h-5 text-red-500 mr-3 flex-shrink-0 mt-0.5" />
                     <div>
                       <h3 className="text-red-800 dark:text-red-300 font-medium">
-                        New Unprocessed Orders
+                        New Pending Orders
                       </h3>
                       <p className="text-sm text-red-700 dark:text-red-200 mt-1">
                         {stats.alerts.newOrders} new orders require processing
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            )}
+            
+            {stats.alerts.newProcessingOrders > 0 && (
+              <Link to="/admin/orders?filter=processing" className="block">
+                <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-4 rounded-r-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition">
+                  <div className="flex items-start">
+                    <Package className="w-5 h-5 text-blue-500 mr-3 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h3 className="text-blue-800 dark:text-blue-300 font-medium">
+                        New Processing Orders
+                      </h3>
+                      <p className="text-sm text-blue-700 dark:text-blue-200 mt-1">
+                        {stats.alerts.newProcessingOrders} orders in processing state
                       </p>
                     </div>
                   </div>
@@ -473,6 +518,7 @@ const AdminDashboard = () => {
             )}
             
             {stats.alerts.newOrders === 0 && 
+             stats.alerts.newProcessingOrders === 0 &&
              stats.alerts.replacementRequests === 0 && 
              stats.alerts.cancellationRequests === 0 && 
              stats.alerts.workshopRequests === 0 && 

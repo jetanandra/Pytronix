@@ -219,7 +219,7 @@ const ReportsPage: React.FC = () => {
               className="btn-primary w-full flex items-center justify-center"
             >
               {loading ? (
-                <LoaderSpinner size="sm\" color="blue" />
+                <LoaderSpinner size="sm" color="blue" />
               ) : (
                 <>
                   <FileText className="w-4 h-4 mr-2" />

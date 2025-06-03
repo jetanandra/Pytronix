@@ -498,11 +498,11 @@ export const getOrderStatusCounts = async () => {
 /**
  * Get monthly order statistics
  */
-export const getMonthlyOrderStats = async (month: number) => {
+export const getMonthlyOrderStats = async (month: number, year?: number) => {
   try {
-    const currentYear = new Date().getFullYear();
-    const startDate = new Date(currentYear, month, 1);
-    const endDate = new Date(currentYear, month + 1, 0);
+    const selectedYear = year || new Date().getFullYear();
+    const startDate = new Date(selectedYear, month, 1);
+    const endDate = new Date(selectedYear, month + 1, 0);
     
     const { data, error } = await supabase
       .from('orders')
